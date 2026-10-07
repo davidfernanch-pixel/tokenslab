@@ -33,8 +33,8 @@ def estimate_cost(tokens: int, price_per_m: float) -> float:
 
 \`\`\`json
 {
-  "modelos": ["gpt-5.5", "claude-opus-5-5", "gemini-3-pro", "grok-4-5"],
-  "ventanas": {"gpt-5.5": 1050000, "claude-opus-5-5": 1000000},
+  "modelos": ["gpt-6-astra", "claude-opus-5-5", "gemini-3.1-pro", "grok-4-7"],
+  "ventanas": {"gpt-6-astra": 1050000, "claude-opus-5-5": 1000000},
   "precios": "TODO: rellenar desde las páginas oficiales"
 }
 \`\`\`
@@ -72,8 +72,8 @@ def estimate_cost(tokens: int, price_per_m: float) -> float:
 
 \`\`\`json
 {
-  "models": ["gpt-5.5", "claude-opus-5-5", "gemini-3-pro", "grok-4-5"],
-  "windows": {"gpt-5.5": 1050000, "claude-opus-5-5": 1000000},
+  "models": ["gpt-6-astra", "claude-opus-5-5", "gemini-3.1-pro", "grok-4-7"],
+  "windows": {"gpt-6-astra": 1050000, "claude-opus-5-5": 1000000},
   "prices": "TODO: fill in from the official pricing pages"
 }
 \`\`\`

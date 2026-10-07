@@ -735,7 +735,7 @@ export const useTokenLens = create<TokenLensState>()(
     },
     {
       name: "tokenlens-settings",
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         activeModels: state.activeModels,
         outputTokens: state.outputTokens,
@@ -743,11 +743,13 @@ export const useTokenLens = create<TokenLensState>()(
         hfEnabled: state.hfEnabled,
       }),
       /**
-       * Migración: el catálogo se renovó por completo en oct-2026 (GPT-5.5,
-       * Claude 5.x, Gemini 3.x, Grok 4.5…). Los ids del catálogo anterior se
-       * descartan y se restauran los activos por defecto (los nuevos
-       * flagships). Para versiones posteriores se filtran ids desconocidos
-       * por seguridad y, si no queda ninguno, también se restauran.
+       * Migración: v3 = catálogo de oct-2026 ampliado con la lista completa
+       * del usuario (112 modelos: GPT-6, Muse, Ministral 3, Qwen 3.5–3.8…).
+       * Muchos ids cambiaron de nombre (p. ej. gpt-5.5 → gpt-5.5-thinking,
+       * deepseek-flash → deepseek-v4-flash), así que las selecciones de
+       * catálogos anteriores se descartan y se restauran los flagships por
+       * defecto. Para versiones posteriores se filtran ids desconocidos por
+       * seguridad y, si no queda ninguno, también se restauran.
        */
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as {
@@ -755,7 +757,7 @@ export const useTokenLens = create<TokenLensState>()(
           outputTokens?: number;
           currency?: CurrencyCode;
         };
-        if (version < 2) {
+        if (version < 3) {
           p.activeModels = DEFAULT_ACTIVE_MODELS;
           return p;
         }

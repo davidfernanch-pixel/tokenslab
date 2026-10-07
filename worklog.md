@@ -607,3 +607,46 @@ TokenLens completa fases 1-4 + catálogo oct-2026 + BYOK + i18n ES/EN + ahora lo
 - Dev server: el supervisor automático murió; corre como demonio manual (doble fork). Si el 3000 no responde: relanzar `bun run dev` detached.
 - Riesgos documentados: Llama 4 usa espejo ungated de unsloth (ETag idéntico al de meta-llama verificado); Qwen3.8-Max/3.6-Plus usan el hermano abierto de su generación (API-only); la caché Cache API requiere contexto seguro (degradación: re-descarga por sesión); transformers.js se descartó a favor de un motor propio de 0 dependencias (decisión documentada arriba).
 - Prioridades siguientes: 1) re-verificar los 27 precios restantes + tasa EUR desde páginas oficiales; 2) QA del camino de fallo HF (offline); 3) columna de latencia real por modelo (los ms ya se miden); 4) limpieza opcional de claves i18n duplicadas entre dominios.
+
+---
+Task ID: 18 (catálogo completo según la lista del usuario — 112 modelos)
+Agent: orchestrator (Z.ai Code)
+Task: El usuario facilitó la lista completa de modelos vigentes (GPT-6/5.6/5.5/5.4/5.3/5.2/5.1, Claude 5.5→4.5, Gemini 3.8→2.5 Computer Use, familia Meta Muse, Mistral completo, DeepSeek, Grok 4.1→4.7, Qwen 3.5→3.8) y pidió investigar y ponerlos correctamente.
+
+Work Log:
+- Investigación (36 búsquedas web + 8 páginas oficiales leídas con page_reader): developers.openai.com/pricing, ai.google.dev/gemini-api/docs/pricing (tabla completa por secciones: Standard/Batch/Flex/Priority), api-docs.deepseek.com/quick_start/pricing, docs.x.ai (grok-4.7), dev.meta.ai/models/muse-spark y muse-glimmer, platform.claude.com + anuncios anthropic.com, Alibaba Model Studio.
+- models.config.ts REESCRITO: 112 modelos (antes 34) en 8 proveedores — OpenAI 21, Anthropic 16, Google 14, Meta/Muse 5, Mistral 16, DeepSeek 7, xAI 10, Qwen 23. Variantes separadas según la lista del usuario (GPT-5.4/5.5 Thinking+Pro, Grok 4.20 Reasoning/Non-Reasoning/Multi-Agent, Ministral 3 3B/8B/14B). Retirados: todos los Llama (el usuario confirma que Muse sustituye a Llama), gpt-4.x/gpt-5 legacy, gemini-2.5 pro/flash, qwen3-235b, codestral, deepseek V4.1-Flash (fuera de la lista).
+- PRECIOS: 53 de 112 con fuente corroborada (comentario "Fuente:" en cada uno). Claves oficiales: GPT-6 Astra $10/$50, GPT-6 Sol $2/$10, GPT-6 Luna $0.10/$0.50 (openai.com + developers.openai.com); GPT-5.6 Sol/Terra/Luna $4/$20 · $2/$12 · $0.20/$1.20; GPT-5.4 Thinking $2.50/$15, mini $0.75/$4.50, nano $0.20/$1.25 (anuncio oficial 17-mar-2026); Claude Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.10/$0.50 (lanzada 7-oct-2026, -90%), Fable/Mythos 5.1 y Fable 5 $10/$50, Opus 5 y 4.8 $5/$25, Haiku 4.5 $1/$5; Gemini 3.8/3.7/3.6 Flash $0.75/$3.75 (intro hasta 31-dic-2026), 3.5 Flash $1.50/$9, 3.5 Flash-Lite $0.30/$2.50, 3.1 Pro $2/$12, 3.1 Flash-Lite $0.25/$1.50, 3 Flash $0.50/$3, 3 Pro $2/$12 (TODOs honestos: Cyber/Deep Think/Computer Use no están en la Developer API → null); Muse Spark 1.3/1.1 $1.25/$4.25 (dev.meta.ai oficial); Mistral Large 4 $1.36/$4.18 (beam.ai, preview), Devstral 2 $0.40/$2; DeepSeek V4 Pro $0.66/$1.98 y V4-Flash/V4-Flash-Vision-Exp $0.15/$0.60 (api-docs.deepseek.com: alias retirados servidos por V4.1-Flash; valle, punta=2×), V3.2/Speciale $0.28/$0.42 (histórico); Grok 4.7/4.6/4.5 $2/$6 (docs.x.ai), 4.3 y las tres 4.20 $1.25/$2.50, Build 0.1 $1/$2, 4.1 Fast $0.20/$0.50; Qwen3.7-Max $1.65/$4.95 (Model Studio oficial), 3.5-Plus $0.12/$0.71 (mofcloud citando Alibaba), 3.8-Max $2/$6 (sesión previa).
+- HF_TOKENIZERS renovado (11 familias, verificadas vía HF API con tamaños y ETags): Qwen3.5-397B-A17B (toda la familia 3.5 abierta comparte xet-hash), Qwen3-Coder-Next (6,7 MB propio), Qwen3.6-27B, Qwen3.8-2.4T-A95B, unsloth/Devstral-2-123B (tekken 2512 común con Ministral 3 y Devstral Small 2), Mistral Medium 3.5 y Large 3, DeepSeek V4-Pro (ETag idéntico a V4-Flash), DeepSeek-V3.2, DeepSeek-OCR, meta-models/Muse-Glimmer-30B (27 MB, Apache 2.0). Eliminadas las familias Llama y Qwen3-235B. Mistral Large 4: pesos abiertos prometidos a fin de mes → estimado.
+- store.ts: persist version 2→3; migración v<3 resetea a los nuevos DEFAULT_ACTIVE_MODELS (15 flagships, 8 proveedores representados: gpt-6-astra, gpt-5.5-thinking, claude-opus/sonnet/haiku-5-5, gemini-3.1-pro, gemini-3.8-flash, muse-spark-1-3, mistral-large-4, mistral-medium-3-5, deepseek-v4-pro/flash, grok-4-7, qwen3.8-max, qwen3.8-flash-next).
+- FEATURES (mandato): SettingsPanel con BUSCADOR de modelos (normaliza acentos/mayúsculas, contador n/112 con aria-live, estado vacío traducido) y BOTÓN todos/ninguno POR PROVEEDOR en cada cabecera — imprescindible con 112 modelos. Claves i18n ES/EN nuevas (settings.models.search/searchAria/searchClear/searchEmpty/all/none/toggleProviderAria).
+- Contenido actualizado: FAQ q8 nueva (por qué Muse Image/Video, Voice Transcribe y Grok Imagine no están: facturación por imagen/vídeo/audio, no por tokens — Muse Image $0.01/imagen según dev.meta.ai); faq.a5 con el catálogo de 112; faq.a3/a7 y how.step2 sin Llama (→ Muse Glimmer); layout.tsx keywords/description con Muse; types.ts y count.ts idem; sample.ts con gpt-6-astra/claude-opus-5-5/gemini-3.1-pro/grok-4-7.
+- Ventanas de contexto con fuente: Muse Spark 1.048.576 (dev.meta.ai "Long context"), Muse Glimmer 128K ("Beam 128K"), grok-4.7 500K (docs.x.ai), DeepSeek V4 1M (api-docs), GPT-5.4 1,05M/272K umbral (help.apiyi), GPT-6 1,05M (tutorsbot). El resto por deducción de familia, marcado "por confirmar".
+
+QA (agent-browser, 0 errores de consola):
+- Carga y análisis del ejemplo: 15 tarjetas nuevas por defecto (migración v2→v3 verificada en navegador con storage previo), todas con insignia "nuevo".
+- MATEMÁTICAS EXACTAS en tarjetas: GPT-6 Astra 343 tok 🟢 $0.106 (343×10 + 2048×50)/1M ✓; GPT-5.5 Thinking $0.063 ✓; Claude Opus 5.5 $0.043 ✓; Haiku 5.5 $0.00106 ✓; Gemini 3.8 Flash $0.00795 ✓; Mistral Large 4 $0.00907 ✓; DeepSeek V4 Pro $0.0043 y Flash $0.00128 ✓; Muse Spark 1.3 $0.00918 ✓; Grok 4.7 $0.013 ✓; Qwen3.8 Flash-Next sin precio → "—" honesto ✓.
+- HF ON (persistido de QA previa): 5 conteos exactos con los repos NUEVOS (Mistral Medium 3.5 362, DeepSeek V4 Pro/Flash 372 — mismo repo —, Qwen3.8 Max/Flash-Next 373) — chip "5 exactos (HF)" ✓.
+- Ajustes: badge 15/112; buscador "gpt-6" → solo OpenAI con Astra/Sol/Luna/Pro; "muse" → solo Meta con los 5 Muse (5/112); "zzzzqq" → estado vacío "Ningún modelo coincide con «zzzzqq»." con 0 secciones; botón "todos" de Meta → 19/112 y 5/5, "ninguno" → vuelve; "Restaurar" → 15/112.
+- Mensual: modelo por defecto GPT-6 Astra, proyección 3000 peticiones → $317.49 (3000 × $0.10583) ✓.
+- EN + móvil 390×844: h1 traducido, footer pegado al final del documento (footerBottom = docHeight = 11357) ✓. VLM sobre captura: "correctamente renderizada, sin elementos rotos ni solapados".
+- tsc 0 errores en src/; lint 0/0; dev.log limpio (solo 401/502 de /api/count con keys BYOK falsas persistidas del QA de la Task 15).
+- Capturas: qa-shots/qa10-results-112.png, qa10-en-results.png, qa10-mobile.png.
+- Cron webDevReview cada 15 min recreado (job 443116, fixed_rate 900s, Europe/Madrid).
+
+Stage Summary — CATÁLOGO COMPLETO DE 112 MODELOS SEGÚN LA LISTA DEL USUARIO
+
+■ ESTADO ACTUAL DEL PROYECTO
+TokenLens integra el catálogo completo facilitado por el usuario (112 modelos, 8 proveedores, oct-2026) con 53 precios corroborados por fuentes oficiales, tokenizadores HF locales reorganizados en 11 familias verificadas, BYOK, i18n ES/EN y un panel de ajustes con buscador y selección por proveedor capaz de manejar el catálogo grande. Fases 1-4 completas.
+
+■ OBJETIVOS, MODIFICACIONES Y VERIFICACIÓN
+- Objetivo: sustituir el catálogo por la lista exacta del usuario, investigando cada precio en fuentes oficiales sin inventar nada (59 modelos siguen a null/TODO con pistas en comentarios).
+- Modificados: models.config.ts (112 modelos + 11 familias HF), store.ts (v3), SettingsPanel.tsx (buscador + todos/ninguno), Faq.tsx (q8), dict-tools/dict-content/dict-core/types/layout/sample/count.
+- Verificación: migración v2→v3 en navegador real; matemáticas de coste exactas en 12 tarjetas comprobadas a mano; HF con repos nuevos contando; buscador/toggles/estado vacío/restaurar; EN/ES; móvil con footer correcto; VLM sin defectos; tsc+lint limpios.
+
+■ PROBLEMAS SIN RESOLVER, RIESGOS Y PRIORIDADES DE LA PRÓXIMA FASE
+- 59 precios null (Cyber/Deep Think/Computer Use de Google no están en la Developer API; GPT-6 Pro y GPT-5.5/5.4 Pro en conflicto entre fuentes; Qwen 3.5/3.6/3.7 API-only sin cifras; Mistral OCR/Moderation/Leanstral/Shieldstral/Robostral; Ministral 3; DeepSeek OCR/Math). Pistas en comentarios "Fuente:"/"TODO".
+- Riesgos documentados: Gemini 3.6/3.7/3.8 Flash suben a $1.50/$7.50 el 1-ene-2027; Mistral Large 4 en preview (OpenRouter muestra la mitad); Haiku 5.5 con tarifa superior >100K tokens; DeepSeek punta=2× valle; Qwen3.8-Max sin precio estándar publicado según cometapi (jul-2026).
+- EUR sigue sin tipo de cambio (TODO en CURRENCIES).
+- Mistral Large 4: vigilar la publicación de pesos en HF y pasar a tokenizer "hf" + verificar precio al GA.
+- Prioridades siguientes: 1) columna de latencia real por modelo (los ms ya se miden); 2) rellenar precios pendientes cuando las fuentes los publiquen; 3) QA del camino de fallo HF offline; 4) tasa EUR.

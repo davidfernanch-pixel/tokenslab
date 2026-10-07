@@ -1,0 +1,226 @@
+     1→   385→Task ID: 14 (actualización de catálogo — octubre 2026)
+     2→   386→Agent: orchestrator (Z.ai Code)
+     3→   387→Task: El usuario señaló que el catálogo tenía modelos antiguos; renovarlo por completo con los modelos vigentes a 07/10/2026, verificado por búsqueda web, sin inventar precios.
+     4→   388→
+     5→   389→Work Log:
+     6→   390→- Búsqueda web (10 consultas) para verificar los modelos vigentes de cada proveedor a octubre 2026 y sus ventanas de contexto: OpenAI (GPT-5.5/5.4/5.2), Anthropic (Opus 5.5, Fable 5.1, Mythos 5.1, Sonnet 5), Google (Gemini 3.1 Pro preview, 3 Pro, 3 Flash), xAI (Grok 4.5, 4.1 Fast; Grok 5 aún en entrenamiento), DeepSeek (V4 Pro, V4.1 Flash; deepseek-chat/reasoner obsoletos), Mistral (Medium 3.5, Large 3), Qwen (3.8 Max, 3.6-Plus), Meta (Llama 4 sigue siendo la última generación).
+     7→   391→- models.config.ts reescrito: 34 modelos (antes 24). Nuevos flagships activos por defecto (15): gpt-5.5, gpt-5.2, claude-opus-5-5, claude-fable-5-1, claude-sonnet-5, claude-haiku-4-5, gemini-3.1-pro, gemini-3-pro, gemini-3-flash, llama-4-maverick, mistral-medium-3-5, deepseek-v4-pro, deepseek-flash, grok-4-5, qwen3.8-max. Retirados: gpt-4-turbo, gpt-3.5-turbo, claude-opus-4-1, claude-sonnet-4-5, qwen2.5-72b, deepseek-chat, deepseek-reasoner, grok-3, mistral-large-2 (sustituidos). Los que siguen en API se conservan marcados "(legacy)" y desactivados.
+     8→   392→- Precios rellenados SOLO donde hay fuente corroborada (comentario "Fuente:" en cada uno): gpt-5.5 $5/$30 (anuncio oficial OpenAI abr-2026), gpt-5.2 $1.75/$14 (página API OpenAI), claude-opus-5-5 $4/$20 (anuncio oficial Anthropic sep-2026), grok-4-5 $2/$6 (notas de versión xAI), qwen3.8-max $2/$6 (lanzamiento Alibaba), mistral-medium-3-5 $1.5/$7.5 y mistral-large-3 $0.5/$1.5 (rastreadores de pricing oct-2026, marcados para verificar). El resto sigue null — sin inventar.
+     9→   393→- Nuevo campo releaseYear + helpers CATALOG_YEAR/isNewRelease; insignia verde "nuevo" en ResultCard, ModelTable y SettingsPanel para modelos de 2026.
+    10→   394→- store.ts: persist con version: 2 + migrate — al venir de la v0 (catálogo antiguo) se restauran los nuevos defaults (los ids viejos ya no existen); en v2+ se filtran ids desconocidos. Preferencias (outputTokens, moneda) se conservan.
+    11→   395→- sample.ts actualizado con ids modernos; Faq.tsx: respuesta de precios/actualización reescrita (catálogo oct-2026, precios solo corroborados).
+    12→   396→- QA con agent-browser: página carga sin errores (portal de Next = solo devtools, no overlay); análisis de ejemplo → 15 tarjetas con los nuevos modelos y badges "nuevo" (10); conteos coherentes (OpenAI 341 exacto, Anthropic 385, Gemini 358, etc.); tabla: GPT-5.5 → 1.050.000 ventana, $5/$30, coste 0,032 $ (341×5/M + 1024×30/M ✓); Opus 5.5 0,022 $ ✓; Grok 4.5 0,00686 $ ✓; Mistral 0,00824 $ ✓; Qwen3.8 0,00691 $ ✓.
+    13→   397→- Migración probada inyectando localStorage v0 con ids antiguos → recarga → version 2, activeModels = nuevos defaults, outputTokens 2048 y EUR conservados.
+    14→   398→- Calculadora mensual: con EUR (rate TODO) muestra "—" por diseño; con USD → GPT-5.5 = 189,435 $ (1,023M×$5 + 6,144M×$30 ✓).
+    15→   399→- VLM sobre capturas dark/light: insignia "nuevo" visible, sin desalineaciones, contraste correcto. lint 0 problemas, tsc 0 errores en src/. Capturas: qa5-new-catalog-dark.png, qa5-new-catalog-light.png, qa5-monthly-gpt55.png.
+    16→   400→
+    17→   401→Stage Summary — ACTUALIZACIÓN DE CATÁLOGO OCT-2026
+    18→   402→
+    19→   403→■ ESTADO ACTUAL DEL PROYECTO
+    20→   404→TokenLens mantiene las fases 1-4 completas (multiarchivo, imágenes, comparador, historial, optimizador, chunker, mensual) y ahora el catálogo refleja la generación de modelos vigente a 07/10/2026: 34 modelos, 15 activos por defecto, todos los flagships actuales presentes. El coste por tokens funciona de verdad para 7 modelos con precio verificado.
+    21→   405→
+    22→   406→■ OBJETIVOS, MODIFICACIONES Y VERIFICACIÓN
+    23→   407→- Objetivo: responder a la petición del usuario (modelos modernos) sin violar la regla de no inventar precios.
+    24→   408→- Modificaciones: models.config.ts (catálogo completo + releaseYear + precios con fuente), store.ts (migración v2), SettingsPanel/ModelTable/ResultCard (badge "nuevo"), sample.ts, Faq.tsx.
+    25→   409→- Verificación: QA agent-browser end-to-end con matemática de costes verificada al céntimo, migración localStorage probada, VLM visual OK, lint/tsc limpios.
+    26→   410→
+    27→   411→■ PROBLEMAS SIN RESOLVER, RIESGOS Y PRIORIDADES DE LA PRÓXIMA FASE
+    28→   412→- Precios de 27 modelos siguen null (sin fuente oficial corroborada en las búsquedas): gpt-5.5-pro, gpt-5.4, gpt-5.2-codex, todos los Anthropic menos Opus 5.5, todos los Gemini, DeepSeek, Llama, Grok 4.1 Fast, Qwen3.6-Plus, Codestral. Riesgo: ventanas y precios de terceros pueden variar — re-verificar contra páginas oficiales antes de producción.
+    29→   413→- EUR sigue sin tipo de cambio (CURRENCIES.EUR.rate = null).
+    30→   414→- Prioridades siguientes del roadmap: 1) BYOK /api/count (Anthropic count_tokens, Gemini countTokens) → badges 🔵 Oficial; 2) tokenizadores HF locales (transformers.js) para Claude/Llama/DeepSeek/Qwen; 3) i18n ES/EN real; 4) fórmula de imagen para modelos 2026 (las actuales siguen las fórmulas documentadas de cada proveedor).
+    31→   415→
+    32→   416→---
+    33→   417→Task ID: 15 (revisión cron — Fase 3 BYOK: conteo oficial con tu propia API key)
+    34→   418→Agent: orchestrator (Z.ai Code)
+    35→   419→Task: Revisión programada: QA base, decisión de enfoque (prioridad nº1 del roadmap = BYOK /api/count) e implementación completa del modo BYOK con badges 🔵 Oficial.
+    36→   420→
+    37→   421→Work Log:
+    38→   422→- QA base: página carga, análisis de ejemplo (15 tarjetas, Exacto/Estimado), sin errores de consola, dev.log limpio. Confirmado que nada producía aún el badge "Oficial" → BYOK era la carencia.
+    39→   423→- NUEVO src/lib/byok.ts: store Zustand persistido (tokenlens-byok, v1) con enabled + keys{anthropic,google}; helpers byokKeyFor/isByokCandidate; fetchOfficialCount → POST /api/count (relativo, mismo origen).
+    40→   424→- NUEVO src/app/api/count/route.ts: proxy SIN ESTADO hacia Anthropic count_tokens (x-api-key, anthropic-version 2023-06-01) y Gemini :countTokens (x-goog-api-key). Validación estricta (proveedor/modelo del catálogo/texto ≤1,5M/key presente), mapeo de errores del proveedor a mensajes claros en español (401/403/404/429/5xx + caso Google 400 "API key not valid" → mensaje de key inválida), dynamic=force-dynamic. La key nunca se persiste ni se registra.
+    41→   425→- store.ts: fase BYOK tras el conteo local — upgradeWithOfficialCounts(text, runId): filtra modelos ACTIVOS con tokenizer estimate de Anthropic/Google y key presente; NO se aplica si hay imágenes (honestidad de la insignia); cada respuesta válida reemplaza el resultado en directo (🟡→🔵) con guard byokRun contra análisis obsoletos; el historial se escribe DESPUÉS con los números finales; reset invalida upgrades pendientes. Estado byok {phase, upgraded, failed, error} + byokRun.
+    42→   426→- SettingsPanel: sección "Conteo oficial (BYOK)" — Switch principal, badge "activo", ApiKeyField con icono KeyRound, input password con revelar (Eye/EyeOff) y borrado (X), placeholder desactivado, nota de seguridad con ShieldCheck (localStorage + proxy sin estado) y contador "N de M modelos activos recibirán conteo oficial".
+    43→   427→- ByokStatus (nuevo componente) en la cabecera de Resultados: chip azul pulsante "conteo oficial…" durante las consultas, chip "N oficiales" al completar (con tooltip de fallos parciales), chip ámbar "API no disponible" si todo falla.
+    44→   428→- ResultCard: acento azul permanente para resultados oficiales (border-google/30 + línea superior bg-google + sombra hover azul).
+    45→   429→- Faq: nueva pregunta BYOK (cómo funciona, seguridad, limitación de imágenes, fallo → estimación); privacidad e insignias actualizadas. HowItWorks: "en camino" → "disponible en Ajustes". types.ts: PRECISION_META.official actualizado.
+    46→   430→- DEBUG+FIX: una sesión de diagnóstico reveló ReferenceError de un log temporal (useByok sin importar) y duplicación de módulos por HMR de Turbopack (zustand con 2 instancias) — resuelto con import correcto + recarga limpia; logs de depuración eliminados después.
+    47→   431→- QA agent-browser de los TRES caminos:
+    48→   432→  * BYOK off → sin chip, sin llamadas API, 26 estimados (regresión OK).
+    49→   433→  * BYOK on + keys falsas → 7 POST /api/count (401/502 reales del sandbox a api.anthropic.com/generativelanguage.googleapis.com), chip "API no disponible" con tooltip del error, tarjetas conservan estimación, sin error global, sin errores de consola.
+    50→   434→  * BYOK on + éxito simulado (fetch mockeado) → chip "7 oficiales", 14 badges "Oficial (API)" (7 tarjetas + 7 filas tabla), Claude→371 y Gemini→349 según el mock, borde+línea azul verificados por DOM y VLM.
+    51→   435→  * Ruta /api/count: validaciones 400 (proveedor/modelo/texto/key) probadas por curl; error 401 de Anthropic y 400→key inválida de Google mapeados a mensajes limpios.
+    52→   436→  * Historial: entradas con los números finales post-upgrade (34 modelos, "hace 1 minuto").
+    53→   437→- VLM: captura de éxito (insignias azules, chip "7 oficiales", línea superior azul ✓ sin problemas visuales) y captura de ajustes con scroll (switch + keys + escudo + "7 de 7" ✓). Lint 0/0, tsc 0 en src/. Capturas: qa6-byok-official-success.png, qa6-byok-settings.png, qa6-byok-settings-scrolled.png.
+    54→   438→
+    55→   439→Stage Summary — ENTREGA BYOK (FASE 3, PRIORIDAD 1 DEL ROADMAP)
+    56→   440→
+    57→   441→■ ESTADO ACTUAL DEL PROYECTO
+    58→   442→TokenLens completa fases 1-4 + catálogo oct-2026 + ahora el modo BYOK de fase 3: conteos OFICIALES 🔵 para Anthropic y Gemini con las keys del usuario (opt-in, keys solo en localStorage, proxy /api/count sin estado). Los tres niveles de insignia están vivos por fin: 🟢 Exacto (OpenAI local), 🔵 Oficial (BYOK Anthropic/Google), 🟡 Estimado (resto).
+    59→   443→
+    60→   444→■ OBJETIVOS, MODIFICACIONES Y VERIFICACIÓN
+    61→   445→- Objetivo: prioridad nº1 del roadmap (BYOK /api/count) + mandatos de estilo (chip animado, acentos azules, sección de ajustes pulida) y features (oficiales en historial/export/tabla, contadores vivos).
+    62→   446→- Modificaciones: 2 archivos nuevos (lib/byok.ts, app/api/count/route.ts, ByokStatus.tsx = 3), 7 modificados (store, SettingsPanel, page, ResultCard, Faq, HowItWorks, types).
+    63→   447→- Verificación: QA de 3 caminos (off/fallo/éxito), validaciones del proxy por curl, errores de proveedor mapeados, VLM en 2 capturas, lint 0/0, tsc 0, dev.log solo con POSTs esperados.
+    64→   448→
+    65→   449→■ PROBLEMAS SIN RESOLVER, RIESGOS Y PRIORIDADES DE LA PRÓXIMA FASE
+    66→   450→- Los ids de modelo Anthropic/Gemini se envían tal cual (claude-opus-5-5, gemini-3.1-pro): si el alias no existe en la API real, el error 404 se muestra claro al usuario (no se inventan alias no verificados).
+    67→   451→- BYOK no cubre análisis con imágenes (decisión documentada) ni proveedores sin endpoint de conteo (OpenAI ya es exacto local; Meta/Mistral/DeepSeek/xAI/Qwen no publican endpoint).
+    68→   452→- Precios: 27 modelos siguen null; EUR sin tipo de cambio.
+    69→   453→- Prioridades siguientes: 1) tokenizadores HF locales vía transformers.js (🟢 Exacto para Llama/DeepSeek/Qwen/Mistral); 2) i18n ES/EN real; 3) re-verificar precios desde páginas oficiales; 4) medición de latencia por modelo en la tabla.
+    70→   454→- Riesgo menor: duplicación de módulos por HMR de Turbopack en desarrollo (zustand) — recargar la página tras editar stores.
+    71→   455→
+    72→   456→---
+    73→   457→Task ID: 16-c
+    74→   458→Agent: subagent (content i18n)
+    75→   459→Task: Convertir al i18n real ES/EN las secciones de contenido: HowItWorks, Faq, Footer y las cadenas de usuario de store.ts (progreso/error/rechazos), rellenando dict-content.ts.
+    76→   460→
+    77→   461→Work Log:
+    78→   462→- Leído worklog (Tasks 14-15), lib/i18n/index.ts (useT/tSync), dict-core.ts y Hero.tsx (patrón de conversión). Verificado que no hay riesgo de import circular: store.ts → i18n → {dict-*, types, sample} y ninguno importa store.
+    79→   463→- src/lib/i18n/dict-content.ts: rellenados CONTENT_ES y CONTENT_EN con 42 claves por idioma — how. (12: kicker/title/subtitle, 3 steps × title+desc, badges.title, badges.intro, config.note), faq. (14: kicker, title, q1-q6, a1-a6 incluida la pregunta BYOK), footer. (9: tagline, local, precision.title, link.how, link.faq, precision.note, providers.title, providers.note, disclaimer), store. (7: progress.counting/done/preparing, error.count, rejected.format/size/limit con interpolación {name}/{ext}/{size}/{n}).
+    80→   464→- HowItWorks.tsx: useT() + arrays STEPS/PRECISION_LEVELS movidos dentro del componente (interfaces intactas). Etiquetas y descripciones de precisión REUTILIZANDO las claves existentes de dict-core (precision.exact/official/estimated + .desc), sin duplicar. NOTA: las descripciones de insignia pierden el matiz "(insignia verde/azul/ámbar)" porque ahora usan el texto único de dict-core; el punto de color junto a cada ítem ya lo comunica. JSX, classNames, id="como-funciona" y estructura sin cambios.
+    81→   465→- Faq.tsx: useT() + FAQS construido dentro del componente con t("faq.q1"…"faq.a6"); values del accordion (privacidad, byok, insignias…) intactos como ids estables. Cabecera → faq.kicker/faq.title.
+    82→   466→- Footer.tsx: useT() + todo el texto visible traducido (tagline, chip local, títulos de columnas, links, notas, disclaimer). "TokenLens · {año}" y labels de proveedores quedan como marca (no se traducen).
+    83→   467→- store.ts: import { tSync } de "@/lib/i18n" y sustitución EXACTA de las 7 cadenas pedidas: "Contando tokens…" (×2: set inicial y callback model-done), "Análisis completado", "Preparando texto…", error "No se pudieron contar…" y los 3 rechazos de analyzeFiles convertidos de template literals a tSync con interpolación (rejected.format {name,ext}, rejected.size {name,size=formatBytes(file.size)} — "límite 20 MB" literal igual que el original —, rejected.limit {name,n=MAX_FILES}). Cero cambios de lógica: mismos sets, misma persistencia, mismas guardas byokRun; el resto de mensajes del store quedan intactos (fuera del alcance de 16-c).
+    84→   468→- Verificación: script efímero confirmó paridad ES/EN 42/42, resolución de todas las claves usadas y interpolación correcta. grep confirmó que las cadenas objetivo ya solo existen en dict-content.ts.
+    85→   469→
+    86→   470→Stage Summary:
+    87→   471→- Entrega: 5 archivos tocados — dict-content.ts (nuevo contenido, 84 claves totales: 42 ES + 42 EN), HowItWorks.tsx, Faq.tsx, Footer.tsx convertidos a useT(); store.ts con tSync() en sus 7 cadenas de usuario.
+    88→   472→- Resultados: bun run lint → 0 problemas; bunx tsc --noEmit → 0 errores en src/ (exit 1 solo por 4 errores preexistentes en examples/skills, filtrados según protocolo); dev.log compila limpio (✓ Compiled, GET / 200).
+    89→   473→- Decisiones: (1) reutilizar precision.* de dict-core en HowItWorks tal y como ordenaba la spec, asumiendo el pequeño cambio de wording de las descripciones de insignia; (2) claves propias footer.local/footer.link.how en vez de reusar hero.chip.local/header.nav.how para desacoplar superficies y respetar el prefijo "footer." asignado; (3) "20 MB" y MAX_FILES se mantienen con los mismos datos que el original (límite literal en el texto ES/EN, {n} interpolado); (4) "desconocido" (fallback de ext) y los mensajes resumen de rechazos ("No se añadió ningún archivo…") NO se tocaron por estar fuera de la lista explícita de la misión — candidatos a una pasada futura de i18n.
+    90→   474→
+    91→   475→---
+    92→   476→Task ID: 16-b
+    93→   477→Agent: subagent (data i18n)
+    94→   478→Task: Convertir al i18n real ES/EN las superficies de datos del proyecto (dropzone, barra de estadísticas, tarjetas de resultado, tokens de imagen, gráfico comparativo, tabla de modelos y exportación), rellenando el diccionario dict-data.ts. Infraestructura creada por el orquestador (Task 16).
+    95→   479→
+    96→   480→Work Log:
+    97→   481→- Contexto: worklog.md (últimas secciones), lib/i18n/index.ts, dict-core.ts, Hero.tsx y PrecisionBadge.tsx como patrón. Grep previo de prefijos: 0 colisiones con dict-tools/dict-content (agentes 16-a/16-c en paralelo).
+    98→   482→- src/lib/i18n/dict-data.ts — 137 claves ES + 137 EN (paridad y unicidad verificadas por script): drop. (18), stats. (9), result. (14), img. (9) + img.formula.* (15 = 5 fórmulas × label/expression/desc), chart. (2), table. (14), export. (56 = 9 menú + 15 CSV + 20 JSON + 12 Markdown).
+    99→   483→- Dropzone.tsx — import de SAMPLE_TEXT eliminado → useSampleText(); "ejemplo.md" del botón de ejemplo también se traduce (drop.sample.file); plurales imagen/imágenes con dos claves + {n}; aria-labels, alertas e idle traducidos. Lógica/estilos intactos.
+   100→   484→- FileStatsBar.tsx — useT() + useLocale() (media caracteres/token con locale activo en vez de "es-ES" quemado); FileChip con su propio useT(); "tokens" del chip → common.tokens (dict-core).
+   101→   485→- ResultCard.tsx — constantes PRICE_TODO_HINT/IMAGE_ESTIMATE_HINT/NO_VISION_HINT sustituidas por result.price.todo/result.image.estimateHint/result.noVisionHint; "nuevo" → common.new; "Cabe"/"No cabe · +{n}", "Ventana", "Restante"/"Exceso", coste estimado ({n}) y aria-label con interpolación.
+   102→   486→- imageTokens.ts — DECISIÓN: módulo solo datos. ImageFormulaInfo reducido a { documented }; IMAGE_FORMULAS mantiene los 5 ids; label/description/expression movidos a dict-data como img.formula.<id>.label|.expression|.desc y traducidos en ImageTokensCard con t(`img.formula.${id}.…`). Firmas de imageFormulaForModel / estimateImageTokensFor / estimateImageTokensForModel intactas (store.ts NO tocado, sigue igual).
+   103→   487→- ImageTokensCard.tsx — ya no importa IMAGE_FORMULAS; chip de fórmula, lista de fórmulas (label + expression), nota single/plural de modelos sin visión ({sample}) y alt de miniaturas ({name}/{w}/{h}) traducidos.
+   104→   488→- CompareChart.tsx — useT() en CompareChart y en ChartTooltip; título/subtítulo → chart.*; "tokens" del tooltip → common.tokens. Ejes/leyenda con nombres de marca y formatCompact ya locale-aware.
+   105→   489→- ModelTable.tsx — COLUMNS pasa de label a labelKey (traducción en render); PRICE_TODO_HINT → table.priceTodo (3 tooltips); desglose "texto {text} + img {img}"; tooltip de coste "{in} entrada + {out} salida ({n} tokens)"; Cabe/No cabe → table.fits/table.noFits. aria-sort conserva los tokens estándar de ARIA (no traducibles).
+   106→   490→- export.ts — DECISIÓN: tSync de "@/lib/i18n" (módulo no React). Cabeceras CSV, sí/no/pendiente, TODOS los nombres de campo JSON ([f("model")]…; id/tokens/precision literales por coincidir en ambos idiomas), aviso JSON y las 12 etiquetas Markdown traducidos; números con toLocaleString(currentLocale()) y separador decimal según idioma (coma ES / punto EN), mismo criterio que format.ts. downloadBlob/copyToClipboard/escCSV intactos.
+   107→   491→- ExportMenu.tsx — useT(); slug/meta por defecto "resultados"/"results"; menú, aria-label y toasts traducidos. Fix lint react-hooks/preserve-manual-memoization: t no puede vivir dentro del useMemo → const defaultName = t("export.defaultSlug") (string estable) añadido a las deps.
+   108→   492→- Verificación: bun run lint → 0 problemas; bunx tsc --noEmit → 0 errores en src/ (exit 0); paridad ES/EN 137/137; curl / → 200 con "Arrastra tus archivos aquí" renderizado por SSR desde dict-data; dev.log compila limpio.
+   109→   493→
+   110→   494→Stage Summary:
+   111→   495→- ESTADO: las 9 superficies de datos de la lista están 100 % i18n; dict-data.ts pasa de vacío a 274 claves (137 ES + 137 EN). El toggle ES/EN de la cabecera ahora traduce también dropzone, estadísticas, tarjetas, imágenes (fórmulas incluidas), gráfico, tabla y exportaciones (los CSV/JSON/MD salen con cabeceras y separador decimal del idioma activo).
+   112→   496→- DECISIONES: imageTokens.ts queda como módulo de solo datos (ids + flag documented) y todo su texto vive en dict-data — la API interna usada por store.ts no cambia; export.ts usa tSync + currentLocale (traducción de cabeceras y formato numérico según idioma); plurales con claves separadas (el interpolador no tiene reglas de plural); "tokens" y "nuevo" reutilizan common.tokens/common.new de dict-core; el archivo del ejemplo se traduce (ejemplo.md → example.md).
+   113→   497→- RESULTADOS: lint 0/0, tsc 0 errores en src/, paridad ES/EN verificada, SSR OK (GET / 200), dev.log limpio. Registro completo en agent-ctx/16-b-subagent-data-i18n.md.
+   114→   498→- FUERA DE ALCANCE (candidatos a pasada futura): metadata/lang de layout.tsx, SUPPORTED_FORMATS_HINT (siglas técnicas), locale "es" de los localeCompare de ModelTable (lógica de ordenación, no cadena visible).
+   115→   499→
+   116→   500→---
+   117→   501→Task ID: 16-a
+   118→   502→Agent: subagent (tools i18n)
+   119→   503→Task: Convertir al i18n real ES/EN los 9 componentes de herramientas (PasteDialog, TokenVisualizer, OptimizerPanel, ChunkSplitter, CompareDialog, HistoryPanel, SettingsPanel, MonthlyCalculator, OutputTokensControl) rellenando dict-tools.ts.
+   120→   504→
+   121→   505→Work Log:
+   122→   506→- Leído el contexto: worklog (Tasks 13–15), lib/i18n/index.ts (API useT/tSync/currentLocale/useLocale/usePrecisionMeta), dict-core.ts y los ejemplos ya convertidos (Header, Hero, PrecisionBadge).
+   123→   507→- src/lib/i18n/dict-tools.ts rellenado de cero: 168 claves ES + 168 EN con prefijos por componente (paste. 9, viz. 13, opt. 19, chunk. 30, cmp. 21, history. 28, settings. 26, monthly. 20, output. 2). Verificado por script: paridad ES/EN exacta, sin duplicados, sin colisión con dict-core, y las 168 claves referenciadas desde los componentes (más 4 claves core reutilizadas: common.cancel, common.close, common.tokens, common.new).
+   124→   508→- 9 componentes convertidos con `const t = useT()` y sustitución de TODO texto visible (JSX, aria-label, placeholder, titles, toasts de sonner, labels, chips de contadores, notas de pie). Cero cambios de lógica, estilos, classNames o estructura; separadores {" "} explícitos donde el original tenía espacios frágiles.
+   125→   509→- Decisiones de traducción:
+   126→   510→  * Plurales con el patrón {plural} del orquestador: cmp.models / history.models / cmp.images usan "{n} modelo{plural}" ("s" en ambos idiomas) y "{n} imagen{plural}" (ES ""/"es", EN ""/"s", con useLang en SummaryCard); cmp.files siempre plural (condición > 1).
+   127→   511→  * Frases con elementos inline (badge/badge/insignia, <code>, spans mono): divididas en fragmentos a/b/c con orden válido en ES y EN (opt.desc.a/b, viz.truncated.a/b, settings.byok.security.a/b, monthly.pricesBody.a-d) preservando el espaciado y los estilos del original.
+   128→   512→  * Tiempos relativos (regla 8): Intl.RelativeTimeFormat("es") → currentLocale() en relativeTime de HistoryPanel y CompareDialog; el markdown copiado usa tSync (módulo no React) + currentLocale en toLocaleString; formatters con signo (signedFmt/signedPercentFmt) convertidos de const a función con currentLocale() para que los deltas usen separador del idioma activo.
+   129→   513→  * settings.byok.counter: "{ready} de {total} modelos activos recibirán conteo oficial." con interpolación (regla 7); "ventana {x}" → settings.models.window (regla 6); dots/labels de precisión vía usePrecisionMeta en SettingsPanel, HistoryPanel (HistoryRow) y CompareDialog (TokensCell), eliminando el import directo de PRECISION_META en los 3 archivos.
+   130→   514→  * Exportaciones del divisor: cabecera del .txt, sufijos de nombre de archivo (-fragmentos/-fragmento → -chunks/-chunk) y ZIP traducidos (chunk.file.*); arias de copia y toasts con {n} interpolado.
+   131→   515→  * Nombres visibles derivados: fileName fallback "texto" y sufijo "(optimizado)" del OptimizerPanel traducidos (opt.fallbackName / opt.optimizedNameSuffix).
+   132→   516→  * ES conserva «…» tipográficas (settings.currency.eurNote); EN usa comillas normales (regla 10). Glosario técnico respetado (tokens, context window, prompt, BYOK, API key, rate limit, chunk).
+   133→   517→  * TokenVisualizer: media car./token con useLocale() en toLocaleString (antes "es-ES" fijo) y título de chip interpolado viz.chipTitle con t en las deps del useMemo.
+   134→   518→- Limitación documentada: los títulos/descripciones de las sugerencias del optimizador provienen de lib/optimizer.ts (fuera de alcance, regla 1) y siguen en español; chunkFileBase (lib/chunker.ts) también devuelve "texto" como base de archivo. Pendiente para el orquestador si decide moverlas a tSync.
+   135→   519→- Verificación: `bun run lint` = 0 problemas; `bunx tsc --noEmit` = 0 errores en src/ (solo los 4 preexistentes de examples/ y skills/); dev.log sin errores nuevos (el EADDRINUSE de la línea 1 es previo a esta tarea; GET / 200 ×52 con compiles limpios); barridos rg de literales hardcodeados en los 9 archivos = vacíos; git status confirma que solo se tocaron los 9 componentes + dict-tools.ts.
+   136→   520→
+   137→   521→Stage Summary:
+   138→   522→- Entregado: i18n real ES/EN completo en las 9 herramientas. 168 claves nuevas × 2 idiomas en dict-tools.ts (336 entradas), 4 claves core reutilizadas, 0 colisiones, 0 claves huérfanas.
+   139→   523→- Resultado de verificación: lint 0/0, tsc 0 en src/, compilación y / 200 en dev server, paridad de diccionarios verificada por script.
+   140→   524→- Destacados de traducción: "Chunk splitter"/"Compute chunks", "Tokens up close", "Official counting (BYOK)", "Savings ≈", contador BYOK "{ready} of {total} active models will get an official count", markdown de comparación íntegramente localizable (tSync) y tiempos relativos "hace 1 minuto" → "1 minute ago" vía Intl reactivo.
+   141→   525→- Riesgos/pendientes: (1) sugerencias del optimizador en ES (lib/optimizer.ts fuera de alcance); (2) los archivos exportados por ChunkSplitter cambian de sufijo según idioma (-fragmentos.txt vs -chunks.txt) — decisión tomada por ser visible al usuario, reversible a identificador fijo si se prefiere; (3) QA visual en navegador pendiente del orquestador (Task 16) según protocolo.
+   142→   526→
+   143→   527→---
+   144→   528→Task ID: 16 (i18n real ES/EN — roadmap fase 3, prioridad 2)
+   145→   529→Agent: orchestrator (Z.ai Code) + subagentes 16-a/16-b/16-c (paralelos)
+   146→   530→Task: Revisión cron: QA base detectó que el toggle ES/EN era decorativo (toast "en camino") → implementar i18n real completo ES/EN en toda la app.
+   147→   531→
+   148→   532→Work Log:
+   149→   533→- QA base: carga OK, análisis OK, sin errores consola. Hallazgo: botón EN no hacía nada (issue real + prioridad 2 del roadmap).
+   150→   534→- Infraestructura nueva src/lib/i18n/: index.ts (store Zustand persistido "tokenlens-lang", useT() para componentes, tSync() para módulos no React, useLocale/usePrecisionMeta/useSampleText, interpolación {var}, fallback EN→ES→clave) + 4 diccionarios por dominio (dict-core/tools/data/content) para evitar conflictos entre agentes paralelos.
+   151→   535→- Orquestador: Header (toggle segmentado con icono Globe+Languages, píldora activa con sombra, <html lang> sincronizado por efecto), Hero, page.tsx, ByokStatus (incl. traducción de los 6 mensajes de error del proxy vía matcher), PrecisionBadge (usePrecisionMeta), format.ts (locale reactivo: coma decimal ES / punto EN, separadores de miles), sample.ts (SAMPLE_ES + SAMPLE_EN).
+   152→   536→- Subagente 16-a (168 claves ×2): PasteDialog, TokenVisualizer, OptimizerPanel, ChunkSplitter, CompareDialog, HistoryPanel, SettingsPanel (sección BYOK completa), MonthlyCalculator, OutputTokensControl. RelativeTimeFormat por locale; markdown de comparación vía tSync.
+   153→   537→- Subagente 16-b (137 claves ×2): Dropzone (useSampleText), FileStatsBar (media por locale), ResultCard (hints → claves), ImageTokensCard (fórmulas → img.formula.<id>.* en dict), CompareChart, ModelTable (COLUMNS con labelKey, tooltips precio), ExportMenu, imageTokens.ts (reducido a datos: ids + documented; firmas intactas), export.ts (tSync, CSV/MD con separador por idioma).
+   154→   538→- Subagente 16-c (42 claves ×2): HowItWorks (reutiliza precision.* de core), Faq (q1-q6/a1-a6 incl. BYOK), Footer, store.ts (7 cadenas: progreso, error, 3 rechazos).
+   155→   539→- Orquestador (cierre de cabos reportados): optimizer.ts (títulos/descripciones de 5 sugerencias → tSync con claves optimizer.*; DEFS reducidos a ids+riesgo), store.ts restante (fileLabel "{n} archivos", "desconocido", 3 errores de análisis, 2 labels "Extrayendo…", warning "Archivos omitidos", error extractMix/extractEmpty) → claves store.* en dict-core.
+   156→   540→- Total: ~390 claves × 2 idiomas (~780 entradas) en 4 diccionarios.
+   157→   541→
+   158→   542→QA (agent-browser):
+   159→   543→- ES: análisis completo, "Cabe"/"Resultados"/"Ventana de contexto"/FAQ OK, htmlLang=es, persistencia tras recarga OK.
+   160→   544→- EN (verificado superficie por superficie): hero, dropzone idle ("Drag your files here", "Paste text", "up to 10 files"), botones por aria-label ("Remove file"), resultados ("Fits", badges "Exact"/"Estimated"), tabla ("Model"/"Provider"/"Context window"), gráfico, HowItWorks, FAQ (BYOK "What is the official count (BYOK mode)?"), footer, historial, ajustes (Visible models/Currency/BYOK/security note), calculadora mensual, optimizador (sugerencias "Minify JSON"/"Collapse blank lines" en vivo). Cero "Cabe"/"Resultados" residual.
+   161→   545→- Formato numérico cambia por idioma: 3,4 → 3.4 chars/token ✓. Sample cambia: ES 341 tokens vs EN 319 tokens ✓ (textos distintos).
+   162→   546→- VLM en 3 capturas (results-en, settings-en, optimizer-en): sin restos de español, sin problemas visuales. 0 errores de consola, lint 0/0, tsc 0. Capturas: qa7-i18n-hero-en.png, qa7-i18n-results-en.png, qa7-i18n-settings-en.png, qa7-i18n-optimizer-en.png.
+   163→   547→
+   164→   548→Stage Summary — ENTREGA i18n ES/EN (FASE 3, PRIORIDAD 2 DEL ROADMAP)
+   165→   549→
+   166→   550→■ ESTADO ACTUAL DEL PROYECTO
+   167→   551→TokenLens completa fases 1-4 + catálogo oct-2026 + BYOK + i18n real ES/EN conmutables al vuelo desde la cabecera (persistido por navegador). La app entera (UI, diálogos, tabla, gráfico, exports, mensajes de error/progreso, formato numérico, sample de prueba) responde al idioma. Tercera prioridad del roadmap completada.
+   168→   552→
+   169→   553→■ OBJETIVOS, MODIFICACIONES Y VERIFICACIÓN
+   170→   554→- Objetivo: convertir el toggle decorativo en i18n real (fix de UX + feature), con el mandato de estilo (toggle segmentado con icono, píldora activa) y el patrón de 3 subagentes paralelos con diccionarios por dominio (cero conflictos de archivos).
+   171→   555→- Modificaciones: 1 carpeta nueva (lib/i18n: index + 4 dicts), 24 archivos convertidos (9 por 16-a, 9+2lib por 16-b, 4 por 16-c, 6 por el orquestador incl. format.ts/sample.ts/optimizer.ts/store.ts).
+   172→   556→- Verificación: QA bilingüe superficie por superficie (15+ checks EN), formato numérico, sample distinto por idioma, persistencia, aria-labels, VLM sin restos, lint 0/0, tsc 0, 0 errores consola.
+   173→   557→
+   174→   558→■ PROBLEMAS SIN RESOLVER, RIESGOS Y PRIORIDADES DE LA PRÓXIMA FASE
+   175→   559→- Restos menores documentados: metadata <title>/description de layout.tsx sigue solo en español (server-side estático); los mensajes de error del proxy /api/count llegan en español y se traducen en cliente por matcher de texto (frágil si cambia el wording del servidor — aceptado); SAMPLE de EN no ejercita acentos (ok, es intencional).
+   176→   560→- Precios: 27 modelos siguen null; EUR sin tipo de cambio (CURRENCIES.EUR.rate).
+   177→   561→- Prioridades siguientes: 1) tokenizadores HF locales vía transformers.js (🟢 Exacto para Llama/DeepSeek/Qwen/Mistral); 2) re-verificar precios desde páginas oficiales; 3) columna de latencia por modelo en la tabla; 4) limpieza opcional de claves duplicadas entre dominios (p. ej. footer.local vs hero.chip.local).
+   178→   562→- Riesgo menor mantenido: duplicación de módulos por HMR de Turbopack al editar stores — recargar la página tras cambios en desarrollo.
+   179→   563→
+   180→   564→---
+   181→   565→Task ID: 17 (revisión cron — Fase 3 final: tokenizadores HF locales exactos + UX)
+   182→   566→Agent: orchestrator (Z.ai Code)
+   183→   567→Task: Revisión programada: QA base, prioridad nº1 del roadmap restante (tokenizadores HF locales para Llama/Mistral/DeepSeek/Qwen, insignia 🟢 Exacto) + mandatos de estilo y nuevas features.
+   184→   568→
+   185→   569→Work Log:
+   186→   570→- QA base: carga, análisis de ejemplo (15 tarjetas, 5 Exacto OpenAI + resto Estimado), toggle EN/ES, 0 errores de consola. Estado estable.
+   187→   571→- Investigación (curl + HF API + web search): mapeo VERIFICADO de repos ungated con el tokenizer.json oficial de cada familia: llama-4-maverick/scout → unsloth/Llama-4-Scout-17B-16E-Instruct (ETag idéntico al de Maverick; vocab NUEVO 202.048 ≠ Llama 3); llama-3.3-70b → unsloth/Llama-3.3-70B-Instruct; mistral-medium-3-5 → mistralai/Mistral-Medium-3.5-128B (oficial); mistral-large-3 → mistralai/Mistral-Large-3-675B-Instruct-2512 (oficial); deepseek-v4-pro → deepseek-ai/DeepSeek-V4-Pro y deepseek-flash → deepseek-ai/DeepSeek-V4.1-Flash (oficiales, vocab 129.280); qwen3.8-max → Qwen/Qwen3.8-2.4T-A95B y qwen3.6-plus → Qwen/Qwen3.6-27B (hermanos abiertos de su generación, API-only los -Max/-Plus; ETags idénticos dentro de cada generación); qwen3-235b → Qwen/Qwen3-235B-A22B. Codestral queda estimado (repo gated). CORS de huggingface.co verificado (echo de Origin + CDN `*`).
+   188→   572→- NUEVO src/lib/tokenizers/hf-bpe.ts (~450 líneas, 0 dependencias): motor BPE byte-level que replica la semántica del `tokenizers` de HF (Rust): normalizador None|NFC|Sequence-vacía → secuencia de Split(Regex, Isolated) → ByteLevel → BPE con merges (fusión de todas las apariciones + atajo de palabra completa). Convierte regex fancy-regex→JS (grupo `(?i:'s|'t|'re|'ve|'m|'ll|'d)` expandido a mano y ENVUELTO en grupo no capturador para que un `?` posterior aplique a toda la contracción; `\s`/`\S` con semántica unicode de Rust; cualquier construcción no soportada lanza → degradación honesta a estimación). Carga con caché: memoria → Cache API ("tokenlens-hf-v1") → red (descarga con progreso real por ReadableStream).
+   189→   573→- VALIDACIÓN CONTRA ORÁCULO: Python `tokenizers` 0.23.2 como referencia. Batería de 13 textos (español con acentos/ñ/¿¡, contracciones inglesas, dígitos, CJK, código JSON, emoji, espacios extremos, NBSP/BOM/NEL, puntuación, sample de la app, solo espacios, mixto) × 9 tokenizadores = 117 casos. Resultado: **117/117 conteos idénticos** (2 bugs encontrados y corregidos durante la validación: tabla byte↔unicode indexada por orden de construcción en vez de por byte; cuantificador `?` ligándose al último grupo interno de la contracción). NOTA: se decidió NO usar transformers.js (peso de onnxruntime para solo-tokenizers); el motor propio cumple el objetivo del spec (tokenizador HF real, local) con verificación dura contra la implementación de referencia.
+   190→   574→- models.config.ts: campo `hfRepo?` en ModelConfig + `HF_TOKENIZERS` (9 familias con label/color/sizeMB medidos oct-2026). 10 modelos pasan a tokenizer "hf" (precision catálogo sigue "estimated": exacto solo al activar el modo). estimateRatio se conserva como fallback.
+   191→   575→- count.ts: CountModel + hfRepo/hf; grupo por repo (una descarga por familia); evento "loading" con labelKey+vars (el worker no tiene localStorage → el store traduce con tSync); evento "hf-failed" + fallback a estimación en catch; conteo troceado como tiktoken (error ≤1 token/trozo).
+   192→   576→- store.ts: `hfEnabled` persistido (partialize; sin bump de versión: merge por defecto false), `setHfEnabled`, estado `hf {phase, upgraded, failedRepo}` por análisis; toCountModels recibe activeIds (solo modelos ACTIVOS descargan su familia: evita 110 MB de familias ocultas); contador de exactos por HF; cierre de fase al terminar. Fix i18n de 5 cadenas hardcodeadas restantes (texto pegado, texto vacío, imagen ilegible, sin texto extraíble, error inesperado).
+   193→   577→- UI: SettingsPanel sección "Tokenizadores locales exactos (HF)" (switch, lista de 9 familias con punto de color + MB + "en uso", nota de privacidad/caché, contador "N modelos · ≈X MB"); NUEVO HfStatus.tsx (chip esmeralda pulsante durante descarga, "N exactos (HF)" al terminar, ámbar "HF no disponible" con repo en tooltip); PRECISION_META exact actualizado (tiktoken + BPE HF); FAQ q7 nueva (qué son, tamaños, caché, privacidad, fallback) ES/EN; HowItWorks paso 2 y faq.a3 actualizados.
+   194→   578→- Mandato ESTILO: NUEVO Reveal.tsx (aparición al scroll con framer-motion whileInView, once, respeta reduced-motion) aplicado a los 3 pasos + insignias de HowItWorks y a cabecera+acordeón de FAQ; NUEVO BackToTop.tsx (botón flotante circular tras 1,2 pantallas, safe-area iOS, smooth scroll, reduced-motion).
+   195→   579→- Mandato FEATURES: NUEVO ShortcutsHelp.tsx (diálogo de atajos con <Kbd> estiladas, botón teclado en cabecera, tecla «?»); atajos globales P (pegar) y V (visualizador, solo con resultados) en page.tsx con guardas (sin modificadores, sin foco en texto, sin diálogos abiertos); data-shortcut en triggers de PasteDialog/TokenVisualizer; Ctrl+Enter ya existía en PasteDialog y ahora está documentado en la ayuda.
+   196→   580→- Fix i18n document.title + meta description sincronizados con el idioma (Header; SSR de layout.tsx sigue ES estático).
+   197→   581→- Incidente infra: el dev server automático murió a mitad de ronda; relanzado como demonio detached (doble fork, logs a dev.log). Si el puerto 3000 no responde en una sesión futura, relanzarlo igual.
+   198→   582→
+   199→   583→QA (agent-browser, 0 errores de consola en toda la ronda):
+   200→   584→- HF OFF (regresión): análisis normal, estimaciones intactas.
+   201→   585→- HF ON + ejemplo EN: descarga de 5 familias (≈70 MB) con chip "exact HF count…" y progreso de descarga; resultado: Llama 4 Maverick 314, Mistral Medium 3.5 333, DeepSeek V4 Pro 320, DeepSeek V4.1 Flash 320, Qwen3.8 Max 346 — **todos idénticos al oráculo Python** (calculado sobre el SAMPLE_EN completo, 1196 chars; o200k GPT-5.5 319 ✓). Chip "5 exact (HF)".
+   202→   586→- Segunda pasada (ES, caché Cache API): sin re-descarga, chip corregido tras fix (el evento loading inicial ahora se emite SIEMPRE, no solo al descargar — bug de fase "running" jamás alcanzada con caché de memoria). ES: Llama 335, Mistral 360, DS Pro 370, DS Flash 370, Qwen 371 — **todos idénticos al oráculo**; GPT-5.5 341 ✓. caches.keys() → tokenlens-hf-v1 ✓.
+   203→   587→- Settings: sección HF con 9 familias, "ACTIVO", "EN USO" exactamente en las 5 familias activas, tamaños MB, contador "5 modelos · ≈70 MB" (VLM: sin solapes).
+   204→   588→- Atajos: «?» abre/cierra ayuda (kbd P/V/Ctrl+Enter/?/Esc); «p» abre pegar; Ctrl+Enter analiza (tabla generada); «v» abre visualizador; guardas OK (no abren con diálogo abierto).
+   205→   589→- i18n: title/meta cambian con EN; FAQ q7 visible en ES y EN; cadenas del store traducidas.
+   206→   590→- Estilo: reveals de HowItWorks/FAQ (VLM: 3 tarjetas alineadas, sin glitches); BackToTop aparece al bajar (VLM ✓); modo claro verificado (VLM: contraste OK).
+   207→   591→- lint 0/0; tsc 0 errores en src/; dev.log limpio (solo POST /api/count 401/502 esperados: keys falsas BYOK persistidas del QA de la Task 15 en este navegador).
+   208→   592→- Capturas: qa8-hf-results-es.png, qa8-hf-settings-es.png, qa8-hf-settings-section.png, qa9-reveal-how2.png, qa9-shortcuts-en.png, qa9-light-results.png.
+   209→   593→
+   210→   594→Stage Summary — ENTREGA TOKENIZADORES HF LOCALES EXACTOS (PRIORIDAD 1 DEL ROADMAP RESTANTE) + UX
+   211→   595→
+   212→   596→■ ESTADO ACTUAL DEL PROYECTO
+   213→   597→TokenLens completa fases 1-4 + catálogo oct-2026 + BYOK + i18n ES/EN + ahora los tokenizadores locales exactos de Hugging Face: los tres niveles de precisión están al máximo posible — 🟢 Exacto para OpenAI (tiktoken) Y para Llama 4/3.3, Mistral Medium/Large 3, DeepSeek V4/V4.1 y Qwen 3/3.6/3.8 (BPE oficial verificado contra la implementación de referencia), 🔵 Oficial (BYOK Anthropic/Google) y 🟡 Estimado con fallback honesto. Más: atajos de teclado, ayuda, reveals al scroll, back-to-top y título/meta localizados.
+   214→   598→
+   215→   599→■ OBJETIVOS, MODIFICACIONES Y VERIFICACIÓN
+   216→   600→- Objetivo: prioridad 1 del roadmap (HF locales) con verificación dura (oráculo Python 117/117 + counts en navegador idénticos al oráculo en EN y ES), cumpliendo los mandatos de estilo y features.
+   217→   601→- Modificaciones: 3 archivos nuevos (hf-bpe.ts, HfStatus.tsx, Reveal.tsx, BackToTop.tsx, ShortcutsHelp.tsx = 5), 10 modificados (models.config, count, store, SettingsPanel, page, Header, Faq, HowItWorks, PasteDialog, TokenVisualizer, dict-core, dict-tools, dict-content, types).
+   218→   602→- Verificación: oráculo 117/117; QA navegador ES+EN con counts exactos coincidentes; VLM 6 capturas sin problemas; lint 0/0; tsc 0 src; 0 errores consola.
+   219→   603→
+   220→   604→■ PROBLEMAS SIN RESOLVER, RIESGOS Y PRIORIDADES DE LA PRÓXIMA FASE
+   221→   605→- Camino de FALLO de HF (sin red/repos caídos) no testeado en navegador (agent-browser no permite simular offline): el catch degrada a estimación + chip ámbar; revisar en la próxima ronda si se dispone de bloqueo de red.
+   222→   606→- Precios: 27 modelos siguen null; EUR sin tipo de cambio.
+   223→   607→- Dev server: el supervisor automático murió; corre como demonio manual (doble fork). Si el 3000 no responde: relanzar `bun run dev` detached.
+   224→   608→- Riesgos documentados: Llama 4 usa espejo ungated de unsloth (ETag idéntico al de meta-llama verificado); Qwen3.8-Max/3.6-Plus usan el hermano abierto de su generación (API-only); la caché Cache API requiere contexto seguro (degradación: re-descarga por sesión); transformers.js se descartó a favor de un motor propio de 0 dependencias (decisión documentada arriba).
+   225→   609→- Prioridades siguientes: 1) re-verificar los 27 precios restantes + tasa EUR desde páginas oficiales; 2) QA del camino de fallo HF (offline); 3) columna de latencia real por modelo (los ms ya se miden); 4) limpieza opcional de claves i18n duplicadas entre dominios.
+   226→   610→

@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "TokenLens — Calculadora de tokens multi-IA",
   description:
-    "Sube un archivo o pega texto y compara cuántos tokens es en GPT, Claude, Gemini, Llama, Mistral, DeepSeek, Grok y Qwen: ventana de contexto usada, coste estimado y si cabe. Todo el procesamiento ocurre en tu navegador: tu archivo no se sube a ningún servidor.",
+    "Sube un archivo o pega texto y compara cuántos tokens es en GPT, Claude, Gemini, Muse, Mistral, DeepSeek, Grok y Qwen: ventana de contexto usada, coste estimado y si cabe. Todo el procesamiento ocurre en tu navegador: tu archivo no se sube a ningún servidor.",
   keywords: [
     "tokens",
     "calculadora de tokens",
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     "GPT",
     "Claude",
     "Gemini",
-    "Llama",
+    "Muse",
     "contexto",
     "coste API",
   ],

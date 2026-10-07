@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Eye,
   EyeOff,
@@ -8,6 +8,7 @@ import {
   Info,
   KeyRound,
   RotateCcw,
+  Search,
   ShieldCheck,
   SlidersHorizontal,
   X,
@@ -42,6 +43,7 @@ import {
   PROVIDERS,
   PROVIDER_ORDER,
   isNewRelease,
+  type Provider,
 } from "@/lib/models.config";
 import { useLang, usePrecisionMeta, useT } from "@/lib/i18n";
 import { formatWindowCompact } from "@/lib/format";
@@ -158,10 +160,56 @@ export function SettingsPanel() {
   const hfEnabled = useTokenLens((s) => s.hfEnabled);
   const setHfEnabled = useTokenLens((s) => s.setHfEnabled);
 
-  const groups = PROVIDER_ORDER.map((provider) => ({
-    provider,
-    models: MODELS.filter((m) => m.provider === provider),
-  })).filter((g) => g.models.length > 0);
+  // Búsqueda de modelos (112 en catálogo): insensible a mayúsculas y acentos
+  const [query, setQuery] = useState("");
+  const normalizedQuery = useMemo(
+    () =>
+      query
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim(),
+    [query],
+  );
+
+  const groups = useMemo(
+    () =>
+      PROVIDER_ORDER.map((provider) => ({
+        provider,
+        models: MODELS.filter(
+          (m) =>
+            m.provider === provider &&
+            (normalizedQuery.length === 0 ||
+              m.id
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase()
+                .includes(normalizedQuery) ||
+              m.name
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase()
+                .includes(normalizedQuery) ||
+              PROVIDERS[provider].label.toLowerCase().includes(normalizedQuery)),
+        ),
+      })).filter((g) => g.models.length > 0),
+    [normalizedQuery],
+  );
+
+  const matchedModels = useMemo(
+    () => groups.reduce((sum, g) => sum + g.models.length, 0),
+    [groups],
+  );
+
+  /** Activa o desactiva de golpe todos los modelos de un proveedor. */
+  const toggleProviderModels = (provider: Provider, ids: string[]) => {
+    const allActive = ids.every((id) => activeModels.includes(id));
+    setActiveModels(
+      allActive
+        ? activeModels.filter((id) => !ids.includes(id))
+        : [...new Set([...activeModels, ...ids])],
+    );
+  };
 
   // Modelos activos que recibirían conteo oficial con la configuración actual
   const upgradeable = MODELS.filter(
@@ -223,11 +271,58 @@ export function SettingsPanel() {
             </Button>
           </div>
 
-          <div>
+          {/* Búsqueda (catálogo grande) */}
+          <div className="relative mt-3">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <Input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("settings.models.search")}
+              aria-label={t("settings.models.searchAria")}
+              className="h-9 pl-9 pr-8 text-sm"
+            />
+            {query && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground"
+                aria-label={t("settings.models.searchClear")}
+                onClick={() => setQuery("")}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+          {normalizedQuery.length > 0 && (
+            <p
+              className="mt-2 font-mono text-[10px] text-muted-foreground"
+              aria-live="polite"
+            >
+              {matchedModels}/{MODELS.length}
+            </p>
+          )}
+
+          <div className={matchedModels === 0 ? "pt-6" : ""}>
+            {matchedModels === 0 && (
+              <p className="rounded-lg bg-surface-elevated p-4 text-center text-xs leading-relaxed text-muted-foreground">
+                {t("settings.models.searchEmpty", { query })}
+              </p>
+            )}
             {groups.map((group) => {
               const activeInGroup = group.models.filter((m) =>
                 activeModels.includes(m.id),
               ).length;
+              const groupIds = MODELS.filter(
+                (m) => m.provider === group.provider,
+              ).map((m) => m.id);
+              const allProviderActive = groupIds.every((id) =>
+                activeModels.includes(id),
+              );
               return (
                 <section key={group.provider} className="mt-4 first:mt-0">
                   <div className="mb-1 flex items-center gap-2">
@@ -244,6 +339,20 @@ export function SettingsPanel() {
                     <span className="ml-auto font-mono text-[10px] text-muted-foreground">
                       {activeInGroup}/{group.models.length}
                     </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 rounded-full px-2 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+                      aria-label={t("settings.models.toggleProviderAria", {
+                        provider: PROVIDERS[group.provider].label,
+                      })}
+                      onClick={() => toggleProviderModels(group.provider, groupIds)}
+                    >
+                      {allProviderActive
+                        ? t("settings.models.none")
+                        : t("settings.models.all")}
+                    </Button>
                   </div>
                   {group.models.map((model) => (
                     <label

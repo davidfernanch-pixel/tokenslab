@@ -1,0 +1,779 @@
+     1→"use client";
+     2→
+     3→import { create } from "zustand";
+     4→import { persist } from "zustand/middleware";
+     5→import {
+     6→  DEFAULT_ACTIVE_MODELS,
+     7→  MODELS,
+     8→  getModel,
+     9→  type CurrencyCode,
+    10→} from "@/lib/models.config";
+    11→import {
+    12→  MAX_FILE_SIZE,
+    13→  MAX_FILES,
+    14→  type AnalysisMeta,
+    15→  type AnalyzedFile,
+    16→  type FileStats,
+    17→  type ImageInfo,
+    18→  type ModelResult,
+    19→  type Progress,
+    20→  type Status,
+    21→} from "@/lib/types";
+    22→import { extractText, isCodeFile, isSupportedFile } from "@/lib/extractors";
+    23→import { isImageFile, extractImageInfo } from "@/lib/extractors/image";
+    24→import { tokenizerClient } from "@/lib/tokenizers/client";
+    25→import { getFileStats } from "@/lib/stats";
+    26→import { formatBytes } from "@/lib/format";
+    27→import { estimateImageTokensForModel } from "@/lib/imageTokens";
+    28→import { addHistoryEntry } from "@/lib/history";
+    29→import { tSync } from "@/lib/i18n";
+    30→import {
+    31→  fetchOfficialCount,
+    32→  isByokCandidate,
+    33→  byokKeyFor,
+    34→  type ByokProvider,
+    35→} from "@/lib/byok";
+    36→
+    37→/** Estado del modo BYOK durante un análisis */
+    38→export interface ByokStatus {
+    39→  phase: "idle" | "running" | "done";
+    40→  /** modelos que pasaron de estimado a oficial */
+    41→  upgraded: number;
+    42→  /** modelos cuyo conteo oficial falló (mantienen la estimación) */
+    43→  failed: number;
+    44→  /** primer mensaje de error recibido, si lo hay */
+    45→  error: string | null;
+    46→}
+    47→
+    48→/** Estado de los tokenizadores HF locales durante un análisis */
+    49→export interface HfStatus {
+    50→  phase: "idle" | "running" | "done" | "failed";
+    51→  /** modelos contados con el BPE oficial de HF (🟢 exacto local) */
+    52→  upgraded: number;
+    53→  /** primer repo cuyo tokenizador no se pudo descargar, si lo hay */
+    54→  failedRepo: string | null;
+    55→}
+    56→
+    57→interface TokenLensState {
+    58→  // estado del análisis
+    59→  status: Status;
+    60→  error: string | null;
+    61→  warning: string | null;
+    62→  fileName: string | null;
+    63→  fileSize: number | null;
+    64→  kind: "file" | "text";
+    65→  /** concatenación de los textos extraídos (los tools la usan) */
+    66→  text: string;
+    67→  /** archivos del análisis en curso (texto e imágenes) */
+    68→  files: AnalyzedFile[];
+    69→  stats: FileStats | null;
+    70→  results: ModelResult[];
+    71→  progress: Progress | null;
+    72→  /** el texto analizado parece código (pista para el optimizador) */
+    73→  codeHint: boolean;
+    74→
+    75→  // conteo oficial BYOK (por análisis)
+    76→  byok: ByokStatus;
+    77→  /** número de análisis: invalida upgrades BYOK obsoletos */
+    78→  byokRun: number;
+    79→
+    80→  // tokenizadores HF locales (por análisis)
+    81→  hf: HfStatus;
+    82→
+    83→  // ajustes (persistidos)
+    84→  activeModels: string[];
+    85→  outputTokens: number;
+    86→  currency: CurrencyCode;
+    87→  /** tokenizadores locales exactos de Hugging Face (opt-in) */
+    88→  hfEnabled: boolean;
+    89→
+    90→  // acciones
+    91→  analyzeFiles: (list: File[], mode?: "replace" | "add") => Promise<void>;
+    92→  analyzeFile: (file: File) => Promise<void>;
+    93→  analyzeText: (text: string, name?: string) => Promise<void>;
+    94→  removeFile: (id: string) => Promise<void>;
+    95→  reset: () => void;
+    96→  toggleModel: (id: string) => void;
+    97→  setActiveModels: (ids: string[]) => void;
+    98→  setOutputTokens: (n: number) => void;
+    99→  setCurrency: (c: CurrencyCode) => void;
+   100→  setHfEnabled: (enabled: boolean) => void;
+   101→}
+   102→
+   103→function toCountModels(codeHint?: boolean, activeIds?: string[], hfEnabled?: boolean) {
+   104→  const active = new Set(activeIds ?? []);
+   105→  return MODELS.map((m) => ({
+   106→    id: m.id,
+   107→    name: m.name,
+   108→    tokenizer: m.tokenizer,
+   109→    estimateRatio: m.estimateRatio ?? 4,
+   110→    codeHint,
+   111→    hfRepo: m.hfRepo,
+   112→    // solo los modelos ACTIVOS cuentan con tokenizador HF: evita descargar
+   113→    // familias (6–28 MB) de modelos que el usuario tiene ocultos
+   114→    hf: hfEnabled && m.hfRepo != null && active.has(m.id),
+   115→  }));
+   116→}
+   117→
+   118→function newId(): string {
+   119→  return typeof crypto !== "undefined" && "randomUUID" in crypto
+   120→    ? crypto.randomUUID()
+   121→    : `f-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+   122→}
+   123→
+   124→function fileLabel(files: AnalyzedFile[]): string {
+   125→  return files.length === 1
+   126→    ? files[0].name
+   127→    : tSync("store.fileLabel", { n: files.length });
+   128→}
+   129→
+   130→function totalSize(files: AnalyzedFile[]): number {
+   131→  return files.reduce((sum, f) => sum + f.sizeBytes, 0);
+   132→}
+   133→
+   134→function textOf(files: AnalyzedFile[]): string {
+   135→  return files
+   136→    .filter((f) => f.kind === "text")
+   137→    .map((f) => f.text ?? "")
+   138→    .join("\n\n");
+   139→}
+   140→
+   141→function imagesOf(files: AnalyzedFile[]): ImageInfo[] {
+   142→  return files
+   143→    .filter((f) => f.kind === "image" && f.imageInfo != null)
+   144→    .map((f) => f.imageInfo as ImageInfo);
+   145→}
+   146→
+   147→/** revoke de las URLs de previsualización en memoria */
+   148→function revokePreviews(files: AnalyzedFile[]): void {
+   149→  for (const f of files) {
+   150→    if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+   151→  }
+   152→}
+   153→
+   154→export const useTokenLens = create<TokenLensState>()(
+   155→  persist(
+   156→    (set, get) => {
+   157→      /**
+   158→       * Fase BYOK: tras el conteo local, pide el conteo OFICIAL a los
+   159→       * proveedores con endpoint público (Anthropic y Google) cuando el
+   160→       * usuario ha activado el modo y configurado su key.
+   161→       *
+   162→       * Reglas de honestidad:
+   163→       * - Solo se aplica a modelos con tokenizer "estimate" de esos 2
+   164→       *   proveedores.
+   165→       * - Con imágenes en el análisis NO se aplica (el conteo oficial solo
+   166→       *   cubre texto; mezclarlo con tokens de imagen estimados sería una
+   167→       *   insignia engañosa).
+   168→       * - Cada respuesta válida reemplaza el resultado al instante: la
+   169→       *   tarjeta pasa de 🟡 Estimado a 🔵 Oficial en directo.
+   170→       * - Un runId invalida los updates obsoletos si empieza otro análisis.
+   171→       */
+   172→      async function upgradeWithOfficialCounts(
+   173→        text: string,
+   174→        runId: number,
+   175→      ): Promise<void> {
+   176→        if (!text) return;
+   177→        if (get().files.some((f) => f.kind === "image")) return;
+   178→
+   179→        // Solo modelos con resultado en este análisis (activos): evita
+   180→        // llamadas API desperdiciadas por modelos ocultos en Ajustes.
+   181→        const activeIds = new Set(get().activeModels);
+   182→        const targets = MODELS.filter(
+   183→          (m) => activeIds.has(m.id) && isByokCandidate(m),
+   184→        );
+   185→        if (targets.length === 0) {
+   186→          set({ byok: { phase: "idle", upgraded: 0, failed: 0, error: null } });
+   187→          return;
+   188→        }
+   189→
+   190→        set({
+   191→          byok: { phase: "running", upgraded: 0, failed: 0, error: null },
+   192→        });
+   193→
+   194→        await Promise.all(
+   195→          targets.map(async (model) => {
+   196→            const provider = model.provider as ByokProvider;
+   197→            const key = byokKeyFor(provider);
+   198→            if (key == null) return;
+   199→            const res = await fetchOfficialCount(
+   200→              provider,
+   201→              model.id,
+   202→              text,
+   203→              key,
+   204→            );
+   205→            set((state) => {
+   206→              if (state.byokRun !== runId) return state;
+   207→              if (res.ok) {
+   208→                return {
+   209→                  results: state.results.map((r) =>
+   210→                    r.modelId === model.id
+   211→                      ? { ...r, tokens: res.tokens, precision: "official" as const }
+   212→                      : r,
+   213→                  ),
+   214→                  byok: { ...state.byok, upgraded: state.byok.upgraded + 1 },
+   215→                };
+   216→              }
+   217→              return {
+   218→                byok: {
+   219→                  ...state.byok,
+   220→                  failed: state.byok.failed + 1,
+   221→                  error: state.byok.error ?? res.error,
+   222→                },
+   223→              };
+   224→            });
+   225→          }),
+   226→        );
+   227→
+   228→        set((state) =>
+   229→          state.byokRun === runId && state.byok.phase === "running"
+   230→            ? { byok: { ...state.byok, phase: "done" } }
+   231→            : state,
+   232→        );
+   233→      }
+   234→
+   235→      /**
+   236→       * Cuenta tokens de todos los archivos (texto por archivo + imágenes por
+   237→       * fórmula) y publica resultados progresivos durante el último archivo.
+   238→       */
+   239→      async function runCounting(
+   240→        files: AnalyzedFile[],
+   241→        kind: "file" | "text",
+   242→        warning?: string,
+   243→      ): Promise<void> {
+   244→        const textFiles = files.filter((f) => f.kind === "text");
+   245→        const images = imagesOf(files);
+   246→        const text = textOf(files);
+   247→        const stats = getFileStats(text);
+   248→        const codeHint = textFiles.some((f) => f.code);
+   249→
+   250→        const runId = get().byokRun + 1;
+   251→        const hfActive = get().hfEnabled;
+   252→
+   253→        set({
+   254→          text,
+   255→          files,
+   256→          stats,
+   257→          warning: warning ?? null,
+   258→          kind,
+   259→          fileName: fileLabel(files),
+   260→          fileSize: totalSize(files),
+   261→          codeHint,
+   262→          status: "counting",
+   263→          error: null,
+   264→          results: [],
+   265→          progress: { phase: "count", label: tSync("store.progress.counting"), percent: 0 },
+   266→          byok: { phase: "idle", upgraded: 0, failed: 0, error: null },
+   267→          byokRun: runId,
+   268→          hf: { phase: "idle", upgraded: 0, failedRepo: null },
+   269→        });
+   270→
+   271→        const models = toCountModels(codeHint, get().activeModels, hfActive);
+   272→        const totals = new Map<
+   273→          string,
+   274→          { tokens: number; ms: number; precision: ModelResult["precision"] }
+   275→        >();
+   276→
+   277→        /** resultados finales de los modelos ya completados */
+   278→        const buildResults = (completed: Set<string>): ModelResult[] => {
+   279→          const out: ModelResult[] = [];
+   280→          for (const m of models) {
+   281→            if (!completed.has(m.id)) continue;
+   282→            const t = totals.get(m.id);
+   283→            if (!t) continue;
+   284→            const model = getModel(m.id);
+   285→            if (!model) continue;
+   286→            const imageTokens =
+   287→              model.vision && images.length > 0
+   288→                ? estimateImageTokensForModel(model, images)
+   289→                : undefined;
+   290→            out.push({
+   291→              modelId: m.id,
+   292→              tokens: t.tokens + (imageTokens ?? 0),
+   293→              precision: t.precision,
+   294→              ms: t.ms,
+   295→              ...(imageTokens != null ? { textTokens: t.tokens } : {}),
+   296→              ...(imageTokens != null ? { imageTokens } : {}),
+   297→            });
+   298→          }
+   299→          return out;
+   300→        };
+   301→
+   302→        const completedAll = new Set<string>();
+   303→        let collected: ModelResult[] = [];
+   304→
+   305→        try {
+   306→          if (textFiles.length === 0) {
+   307→            // Solo imágenes: los tokens de texto son 0 para todos los modelos
+   308→            const precisionOf = (id: string) =>
+   309→              getModel(id)?.tokenizer.startsWith("tiktoken")
+   310→                ? ("exact" as const)
+   311→                : ("estimated" as const);
+   312→            for (const m of models) {
+   313→              totals.set(m.id, {
+   314→                tokens: 0,
+   315→                ms: 0,
+   316→                precision: precisionOf(m.id),
+   317→              });
+   318→              completedAll.add(m.id);
+   319→            }
+   320→            collected = buildResults(completedAll);
+   321→            set({ results: collected });
+   322→          } else {
+   323→            for (let i = 0; i < textFiles.length; i++) {
+   324→              const file = textFiles[i];
+   325→              const isLast = i === textFiles.length - 1;
+   326→              const doneInFile = new Set<string>();
+   327→              let exactTokens: number | null = null;
+   328→
+   329→              await tokenizerClient.count(file.text ?? "", models, (ev) => {
+   330→                if (ev.type === "loading") {
+   331→                  // el worker no tiene acceso al idioma: traduce la CLAVE aquí
+   332→                  if (ev.kind === "hf") {
+   333→                    set((state) => ({
+   334→                      hf:
+   335→                        state.hf.phase === "running"
+   336→                          ? state.hf
+   337→                          : { ...state.hf, phase: "running" },
+   338→                    }));
+   339→                  }
+   340→                  set({
+   341→                    progress: {
+   342→                      phase: "load-tokenizer",
+   343→                      label: tSync(ev.labelKey, ev.vars),
+   344→                      percent: ev.percent ?? get().progress?.percent ?? 0,
+   345→                    },
+   346→                  });
+   347→                } else if (ev.type === "hf-failed") {
+   348→                  set((state) => ({
+   349→                    hf:
+   350→                      state.hf.failedRepo == null
+   351→                        ? { ...state.hf, failedRepo: ev.repo, phase: "failed" }
+   352→                        : state.hf,
+   353→                  }));
+   354→                } else if (ev.type === "model-done") {
+   355→                  doneInFile.add(ev.result.modelId);
+   356→                  const prev =
+   357→                    totals.get(ev.result.modelId) ??
+   358→                    { tokens: 0, ms: 0, precision: ev.result.precision };
+   359→                  totals.set(ev.result.modelId, {
+   360→                    tokens: prev.tokens + ev.result.tokens,
+   361→                    ms: prev.ms + ev.result.ms,
+   362→                    precision: ev.result.precision,
+   363→                  });
+   364→                  // conteo exacto de referencia (primer modelo o200k)
+   365→                  const cfg = getModel(ev.result.modelId);
+   366→                  if (exactTokens == null && cfg?.tokenizer === "tiktoken-o200k") {
+   367→                    exactTokens = ev.result.tokens;
+   368→                  }
+   369→                  // modelos con conteo exacto vía tokenizador HF local
+   370→                  if (cfg?.tokenizer === "hf" && ev.result.precision === "exact") {
+   371→                    set((state) => ({
+   372→                      hf: { ...state.hf, upgraded: state.hf.upgraded + 1 },
+   373→                    }));
+   374→                  }
+   375→
+   376→                  if (isLast) {
+   377→                    completedAll.add(ev.result.modelId);
+   378→                    collected = buildResults(completedAll);
+   379→                    set({ results: [...collected] });
+   380→                  }
+   381→
+   382→                  const fileProgress =
+   383→                    (i + doneInFile.size / models.length) / textFiles.length;
+   384→                  set({
+   385→                    progress: {
+   386→                      phase: "count",
+   387→                      label: tSync("store.progress.counting"),
+   388→                      percent: Math.round(fileProgress * 100),
+   389→                    },
+   390→                  });
+   391→                }
+   392→              });
+   393→
+   394→              // guardar el conteo exacto del archivo en su entrada
+   395→              if (exactTokens != null) {
+   396→                set({
+   397→                  files: get().files.map((f) =>
+   398→                    f.id === file.id ? { ...f, exactTokens: exactTokens! } : f,
+   399→                  ),
+   400→                });
+   401→              }
+   402→            }
+   403→          }
+   404→
+   405→          set({
+   406→            status: "done",
+   407→            progress: { phase: "done", label: tSync("store.progress.done"), percent: 100 },
+   408→          });
+   409→
+   410→          // cerrar el chip HF (fase done) si hubo conteo exacto local
+   411→          set((state) =>
+   412→            state.hf.phase === "running"
+   413→              ? { hf: { ...state.hf, phase: "done" } }
+   414→              : state,
+   415→          );
+   416→
+   417→          // Fase BYOK: pedir conteos oficiales (Anthropic/Google) si el
+   418→          // usuario lo ha activado. Los resultados se actualizan en directo
+   419→          // (🟡 → 🔵) y el historial se escribe después, con los números
+   420→          // finales.
+   421→          await upgradeWithOfficialCounts(text, runId);
+   422→          const finalResults = get().byokRun === runId ? get().results : collected;
+   423→
+   424→          // Historial local (nunca sale del navegador)
+   425→          try {
+   426→            addHistoryEntry({
+   427→              kind,
+   428→              name: fileLabel(files),
+   429→              size: totalSize(files),
+   430→              stats,
+   431→              text,
+   432→              fileCount: files.length,
+   433→              imageCount: images.length,
+   434→              results: finalResults.map((r) => ({
+   435→                modelId: r.modelId,
+   436→                tokens: r.tokens,
+   437→                precision: r.precision,
+   438→                ...(r.textTokens != null ? { textTokens: r.textTokens } : {}),
+   439→                ...(r.imageTokens != null
+   440→                  ? { imageTokens: r.imageTokens }
+   441→                  : {}),
+   442→              })),
+   443→            });
+   444→          } catch {
+   445→            // El historial es opcional: si falla el almacenamiento, se ignora
+   446→          }
+   447→        } catch {
+   448→          set({
+   449→            status: "error",
+   450→            error: tSync("store.error.count"),
+   451→            progress: null,
+   452→          });
+   453→        }
+   454→      }
+   455→
+   456→      return {
+   457→        status: "idle",
+   458→        error: null,
+   459→        warning: null,
+   460→        fileName: null,
+   461→        fileSize: null,
+   462→        kind: "file",
+   463→        text: "",
+   464→        files: [],
+   465→        stats: null,
+   466→        results: [],
+   467→        progress: null,
+   468→        codeHint: false,
+   469→
+   470→        byok: { phase: "idle", upgraded: 0, failed: 0, error: null },
+   471→        byokRun: 0,
+   472→
+   473→        hf: { phase: "idle", upgraded: 0, failedRepo: null },
+   474→
+   475→        activeModels: DEFAULT_ACTIVE_MODELS,
+   476→        outputTokens: 1024,
+   477→        currency: "USD",
+   478→        hfEnabled: false,
+   479→
+   480→        analyzeFiles: async (list, mode = "replace") => {
+   481→          const current = get();
+   482→          if (current.status === "extracting" || current.status === "counting") {
+   483→            return;
+   484→          }
+   485→
+   486→          const existing = mode === "add" ? current.files : [];
+   487→          const rejections: string[] = [];
+   488→          const accepted: File[] = [];
+   489→
+   490→          for (const file of list) {
+   491→            if (!isSupportedFile(file) && !isImageFile(file)) {
+   492→              const ext = file.name.includes(".")
+   493→                ? `.${file.name.split(".").pop()?.toLowerCase()}`
+   494→                : file.type || tSync("store.unknownType");
+   495→              rejections.push(tSync("store.rejected.format", { name: file.name, ext }));
+   496→              continue;
+   497→            }
+   498→            if (file.size > MAX_FILE_SIZE) {
+   499→              rejections.push(
+   500→                tSync("store.rejected.size", {
+   501→                  name: file.name,
+   502→                  size: formatBytes(file.size),
+   503→                }),
+   504→              );
+   505→              continue;
+   506→            }
+   507→            if (existing.length + accepted.length + 1 > MAX_FILES) {
+   508→              rejections.push(
+   509→                tSync("store.rejected.limit", { name: file.name, n: MAX_FILES }),
+   510→              );
+   511→              continue;
+   512→            }
+   513→            accepted.push(file);
+   514→          }
+   515→
+   516→          if (accepted.length === 0) {
+   517→            set({
+   518→              status: "error",
+   519→              error:
+   520→                existing.length > 0
+   521→                  ? tSync("store.error.noneAdded", { list: rejections.join(" · ") })
+   522→                  : rejections.length > 0
+   523→                    ? tSync("store.error.rejected", { list: rejections.join(" · ") })
+   524→                    : tSync("store.error.noFiles"),
+   525→              progress: null,
+   526→            });
+   527→            return;
+   528→          }
+   529→
+   530→          if (mode === "replace") revokePreviews(existing);
+   531→
+   532→          set({
+   533→            status: "extracting",
+   534→            error: null,
+   535→            warning: null,
+   536→            results: [],
+   537→            fileName: null,
+   538→            fileSize: null,
+   539→            progress: {
+   540→              phase: "extract",
+   541→              label:
+   542→                accepted.length === 1
+   543→                  ? tSync("store.progress.extractingOne", { name: accepted[0].name })
+   544→                  : tSync("store.progress.extractingMany", { n: accepted.length }),
+   545→              percent: 0,
+   546→            },
+   547→          });
+   548→
+   549→          const extracted: AnalyzedFile[] = [];
+   550→          const warnings: string[] = rejections.length > 0
+   551→            ? [tSync("store.warning.skipped", { list: rejections.join(" · ") })]
+   552→            : [];
+   553→
+   554→          try {
+   555→            for (let i = 0; i < accepted.length; i++) {
+   556→              const file = accepted[i];
+   557→              const base = {
+   558→                id: newId(),
+   559→                name: file.name,
+   560→                sizeBytes: file.size,
+   561→              };
+   562→
+   563→              if (isImageFile(file)) {
+   564→                try {
+   565→                  const imageInfo = await extractImageInfo(file);
+   566→                  extracted.push({
+   567→                    ...base,
+   568→                    kind: "image",
+   569→                    imageInfo,
+   570→                    previewUrl: URL.createObjectURL(file),
+   571→                  });
+   572→                } catch (err) {
+   573→                  warnings.push(
+   574→                    `${file.name} (${err instanceof Error ? err.message : tSync("store.error.imageRead")})`,
+   575→                  );
+   576→                }
+   577→              } else {
+   578→                const { text, warning } = await extractText(file, (percent) => {
+   579→                  set({
+   580→                    progress: {
+   581→                      phase: "extract",
+   582→                      label: tSync("store.progress.extractingStep", { name: file.name, i: i + 1, n: accepted.length }),
+   583→                      percent: Math.round(
+   584→                        ((i + percent / 100) / accepted.length) * 100,
+   585→                      ),
+   586→                    },
+   587→                  });
+   588→                });
+   589→                if (!text.trim()) {
+   590→                  warnings.push(
+   591→                    `${file.name} (${warning ?? tSync("store.error.noTextExtractable")})`,
+   592→                  );
+   593→                  continue;
+   594→                }
+   595→                extracted.push({
+   596→                  ...base,
+   597→                  kind: "text",
+   598→                  text,
+   599→                  ...(warning ? { warning } : {}),
+   600→                  code: isCodeFile(file.name),
+   601→                });
+   602→                if (warning) warnings.push(`${file.name} (${warning})`);
+   603→              }
+   604→
+   605→              set({
+   606→                progress: {
+   607→                  phase: "extract",
+   608→                  label: tSync("store.progress.extractingStep", { name: file.name, i: i + 1, n: accepted.length }),
+   609→                  percent: Math.round(((i + 1) / accepted.length) * 100),
+   610→                },
+   611→              });
+   612→            }
+   613→          } catch (err) {
+   614→            set({
+   615→              status: "error",
+   616→              error:
+   617→                err instanceof Error
+   618→                  ? err.message
+   619→                  : tSync("store.error.unexpected"),
+   620→              progress: null,
+   621→            });
+   622→            return;
+   623→          }
+   624→
+   625→          if (extracted.length === 0) {
+   626→            set({
+   627→              status: "error",
+   628→              error:
+   629→                warnings.length > 0
+   630→                  ? tSync("store.error.extractMixed", { list: warnings.join(" · ") })
+   631→                  : tSync("store.error.extractEmpty"),
+   632→              progress: null,
+   633→            });
+   634→            return;
+   635→          }
+   636→
+   637→          const allFiles = mode === "add" ? [...existing, ...extracted] : extracted;
+   638→          await runCounting(
+   639→            allFiles,
+   640→            "file",
+   641→            warnings.length > 0 ? warnings.join(" · ") : undefined,
+   642→          );
+   643→        },
+   644→
+   645→        analyzeFile: async (file) => {
+   646→          await get().analyzeFiles([file], "replace");
+   647→        },
+   648→
+   649→        analyzeText: async (text, name) => {
+   650→          const label = name ?? tSync("store.pastedName");
+   651→          if (!text.trim()) {
+   652→            set({
+   653→              status: "error",
+   654→              error: tSync("store.error.emptyText"),
+   655→              progress: null,
+   656→            });
+   657→            return;
+   658→          }
+   659→          const previous = get().files;
+   660→          if (previous.length > 0) revokePreviews(previous);
+   661→          set({
+   662→            status: "extracting",
+   663→            error: null,
+   664→            warning: null,
+   665→            files: [],
+   666→            progress: {
+   667→              phase: "extract",
+   668→              label: tSync("store.progress.preparing"),
+   669→              percent: 100,
+   670→            },
+   671→          });
+   672→          const file: AnalyzedFile = {
+   673→            id: newId(),
+   674→            name: label,
+   675→            sizeBytes: new Blob([text]).size,
+   676→            kind: "text",
+   677→            text,
+   678→            code: false,
+   679→          };
+   680→          await runCounting([file], "text");
+   681→        },
+   682→
+   683→        removeFile: async (id) => {
+   684→          const current = get();
+   685→          if (current.status === "extracting" || current.status === "counting") {
+   686→            return;
+   687→          }
+   688→          const target = current.files.find((f) => f.id === id);
+   689→          if (!target) return;
+   690→          if (target.previewUrl) URL.revokeObjectURL(target.previewUrl);
+   691→          const remaining = current.files.filter((f) => f.id !== id);
+   692→          if (remaining.length === 0) {
+   693→            get().reset();
+   694→            return;
+   695→          }
+   696→          await runCounting(remaining, current.kind, undefined);
+   697→        },
+   698→
+   699→        reset: () => {
+   700→          revokePreviews(get().files);
+   701→          set({
+   702→            status: "idle",
+   703→            error: null,
+   704→            warning: null,
+   705→            fileName: null,
+   706→            fileSize: null,
+   707→            text: "",
+   708→            files: [],
+   709→            stats: null,
+   710→            results: [],
+   711→            progress: null,
+   712→            byok: { phase: "idle", upgraded: 0, failed: 0, error: null },
+   713→            byokRun: get().byokRun + 1,
+   714→            hf: { phase: "idle", upgraded: 0, failedRepo: null },
+   715→          });
+   716→        },
+   717→
+   718→        toggleModel: (id) => {
+   719→          const current = get().activeModels;
+   720→          set({
+   721→            activeModels: current.includes(id)
+   722→              ? current.filter((m) => m !== id)
+   723→              : [...current, id],
+   724→          });
+   725→        },
+   726→
+   727→        setActiveModels: (ids) => set({ activeModels: ids }),
+   728→
+   729→        setOutputTokens: (n) => set({ outputTokens: n }),
+   730→
+   731→        setCurrency: (c) => set({ currency: c }),
+   732→
+   733→        setHfEnabled: (enabled) => set({ hfEnabled: enabled }),
+   734→      };
+   735→    },
+   736→    {
+   737→      name: "tokenlens-settings",
+   738→      version: 2,
+   739→      partialize: (state) => ({
+   740→        activeModels: state.activeModels,
+   741→        outputTokens: state.outputTokens,
+   742→        currency: state.currency,
+   743→        hfEnabled: state.hfEnabled,
+   744→      }),
+   745→      /**
+   746→       * Migración: el catálogo se renovó por completo en oct-2026 (GPT-5.5,
+   747→       * Claude 5.x, Gemini 3.x, Grok 4.5…). Los ids del catálogo anterior se
+   748→       * descartan y se restauran los activos por defecto (los nuevos
+   749→       * flagships). Para versiones posteriores se filtran ids desconocidos
+   750→       * por seguridad y, si no queda ninguno, también se restauran.
+   751→       */
+   752→      migrate: (persisted, version) => {
+   753→        const p = (persisted ?? {}) as {
+   754→          activeModels?: string[];
+   755→          outputTokens?: number;
+   756→          currency?: CurrencyCode;
+   757→        };
+   758→        if (version < 2) {
+   759→          p.activeModels = DEFAULT_ACTIVE_MODELS;
+   760→          return p;
+   761→        }
+   762→        const known = new Set(MODELS.map((m) => m.id));
+   763→        const kept = (p.activeModels ?? []).filter((id) => known.has(id));
+   764→        p.activeModels = kept.length > 0 ? kept : DEFAULT_ACTIVE_MODELS;
+   765→        return p;
+   766→      },
+   767→    },
+   768→  ),
+   769→);
+   770→
+   771→/** Filtra resultados a los modelos activos (ids desconocidos se ignoran) */
+   772→export function selectActiveResults(
+   773→  results: ModelResult[],
+   774→  activeModels: string[],
+   775→): ModelResult[] {
+   776→  if (activeModels.length === 0) return [];
+   777→  return results.filter((r) => activeModels.includes(r.modelId));
+   778→}
+   779→

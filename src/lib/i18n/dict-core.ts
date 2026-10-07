@@ -15,7 +15,7 @@ export const CORE_ES: Record<string, string> = {
   // ── Metadatos del documento (título y meta description) ──────────────
   "meta.title": "TokenLens — Calculadora de tokens multi-IA",
   "meta.description":
-    "Calcula cuántos tokens ocupa tu texto o archivo en GPT, Claude, Gemini, Llama, Mistral, DeepSeek, Grok y Qwen. Procesamiento 100 % local, insignias de precisión y coste estimado.",
+    "Calcula cuántos tokens ocupa tu texto o archivo en GPT, Claude, Gemini, Muse, Mistral, DeepSeek, Grok y Qwen. Procesamiento 100 % local, insignias de precisión y coste estimado.",
 
   // ── Atajos de teclado ─────────────────────────────────────────────────────
   "shortcuts.triggerAria": "Atajos de teclado",
@@ -35,7 +35,7 @@ export const CORE_ES: Record<string, string> = {
   "hero.title.b": "es tu texto",
   "hero.title.c": "en cada modelo de IA?",
   "hero.subtitle":
-    "Sube un archivo o pega texto y compara tokens, uso de la ventana de contexto y coste estimado entre GPT, Claude, Gemini, Llama, Mistral, DeepSeek, Grok y Qwen. Todo el procesamiento ocurre en tu navegador, sin subidas ni registro.",
+    "Sube un archivo o pega texto y compara tokens, uso de la ventana de contexto y coste estimado entre GPT, Claude, Gemini, Muse, Mistral, DeepSeek, Grok y Qwen. Todo el procesamiento ocurre en tu navegador, sin subidas ni registro.",
   "hero.chip.local": "Procesamiento 100 % local",
   "hero.chip.instant": "Resultados al instante",
   "hero.chip.models": "modelos",
@@ -59,7 +59,7 @@ export const CORE_ES: Record<string, string> = {
   // ── Insignias de precisión ──────────────────────────────────────────────
   "precision.exact": "Exacto",
   "precision.exact.desc":
-    "Tokenizador oficial del modelo ejecutado en tu navegador: tiktoken (OpenAI) o el BPE abierto de Hugging Face (Llama, Mistral, DeepSeek, Qwen).",
+    "Tokenizador oficial del modelo ejecutado en tu navegador: tiktoken (OpenAI) o el BPE abierto de Hugging Face (Muse, Mistral, DeepSeek, Qwen).",
   "precision.official": "Oficial (API)",
   "precision.official.desc":
     "Conteo oficial devuelto por el endpoint del proveedor con tu propia key (modo BYOK).",
@@ -95,7 +95,7 @@ export const CORE_ES: Record<string, string> = {
   "hf.status.running": "conteo exacto HF…",
   "hf.status.done": "{n} exacto{plural} (HF)",
   "hf.status.done.tip":
-    "Tokenizadores oficiales de Hugging Face ejecutados en tu navegador: Llama, Mistral, DeepSeek y Qwen cuentan con el BPE real (🟢).",
+    "Tokenizadores oficiales de Hugging Face ejecutados en tu navegador: Muse, Mistral, DeepSeek y Qwen cuentan con el BPE real (🟢).",
   "hf.status.failed": "HF no disponible",
   "hf.status.failed.tip":
     "No se pudo descargar el tokenizador de {repo} (¿sin conexión?). Esos modelos se muestran como estimados.",
@@ -189,7 +189,7 @@ export const CORE_EN: Record<string, string> = {
   // ── Precision badges ────────────────────────────────────────────────────
   "precision.exact": "Exact",
   "precision.exact.desc":
-    "The model's official tokenizer running in your browser: tiktoken (OpenAI) or the open Hugging Face BPE (Llama, Mistral, DeepSeek, Qwen).",
+    "The model's official tokenizer running in your browser: tiktoken (OpenAI) or the open Hugging Face BPE (Muse, Mistral, DeepSeek, Qwen).",
   "precision.official": "Official (API)",
   "precision.official.desc":
     "Official count returned by the provider's endpoint using your own key (BYOK mode).",
@@ -225,7 +225,7 @@ export const CORE_EN: Record<string, string> = {
   "hf.status.running": "exact HF count…",
   "hf.status.done": "{n} exact (HF)",
   "hf.status.done.tip":
-    "Official Hugging Face tokenizers executed in your browser: Llama, Mistral, DeepSeek and Qwen count with the real BPE (🟢).",
+    "Official Hugging Face tokenizers executed in your browser: Muse, Mistral, DeepSeek and Qwen count with the real BPE (🟢).",
   "hf.status.failed": "HF unavailable",
   "hf.status.failed.tip":
     "The tokenizer for {repo} could not be downloaded (offline?). Those models are shown as estimated.",

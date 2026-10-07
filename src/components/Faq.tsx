@@ -41,6 +41,11 @@ export function Faq() {
       answer: t("faq.a7"),
     },
     {
+      value: "modelos-medio",
+      question: t("faq.q8"),
+      answer: t("faq.a8"),
+    },
+    {
       value: "precision-estimada",
       question: t("faq.q4"),
       answer: t("faq.a4"),

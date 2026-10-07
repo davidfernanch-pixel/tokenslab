@@ -5,7 +5,7 @@
  * Los modelos que comparten tokenizador (p. ej. todos los OpenAI modernos con
  * o200k_base) se codifican una sola vez y se reutiliza el conteo.
  *
- * Modelos "hf" (Llama, Mistral, DeepSeek, Qwen): cuando el modo local exacto
+ * Modelos "hf" (Muse Glimmer, Mistral, DeepSeek, Qwen): cuando el modo local exacto
  * está activado (CountModel.hf), se descarga el tokenizer.json oficial desde
  * la CDN de Hugging Face (cacheado en Cache API) y se cuenta con el BPE real
  * (insignia 🟢 Exacto). Si la descarga o el conteo fallan, se degrada a
