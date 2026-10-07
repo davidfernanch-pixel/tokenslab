@@ -79,13 +79,13 @@ export function Dropzone() {
           if (file) void analyzeFile(file);
         }}
         className={cn(
-          "relative flex min-h-[280px] flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all duration-300 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 md:p-12",
-          isDone && "min-h-0",
+          "group relative flex min-h-[280px] flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all duration-300 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 md:p-12",
+          isDone && "min-h-0 border-solid!",
           isDragging
-            ? "scale-[1.005] border-primary bg-accent/40"
+            ? "scale-[1.005] border-primary bg-primary/10 shadow-glow"
             : isBusy
               ? "border-border bg-card"
-              : "cursor-pointer border-border bg-card hover:border-primary/50 hover:bg-surface-elevated/40",
+              : "cursor-pointer border-border bg-card/70 hover:border-primary/60 hover:bg-card",
         )}
       >
         <input
@@ -179,7 +179,14 @@ export function Dropzone() {
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="flex flex-col items-center"
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#7C5CFF] to-[#9479FF] shadow-lg shadow-primary/25">
+              <div
+                className={cn(
+                  "flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#7C5CFF] to-[#9479FF] shadow-lg shadow-primary/25 motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out",
+                  isDragging
+                    ? "animate-pulse-soft rotate-3 scale-125"
+                    : "group-hover:scale-110",
+                )}
+              >
                 <FileUp className="h-6 w-6 text-white" />
               </div>
               <h2 className="mt-5 text-xl font-semibold sm:text-2xl">
@@ -188,13 +195,21 @@ export function Dropzone() {
               <p className="mt-1.5 text-sm text-muted-foreground">
                 o haz clic para seleccionarlo
               </p>
-              <p className="mt-4 font-mono text-[11px] text-muted-foreground/70">
-                {SUPPORTED_FORMATS_HINT}
-              </p>
+              <div className="mt-4 flex max-w-md flex-wrap items-center justify-center gap-1.5">
+                {SUPPORTED_FORMATS_HINT.split(" · ").map((format) => (
+                  <span
+                    key={format}
+                    className="rounded-md border border-border bg-surface-elevated px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
+                  >
+                    {format}
+                  </span>
+                ))}
+              </div>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <PasteDialog />
                 <Button
                   variant="ghost"
+                  className="text-muted-foreground hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation();
                     void analyzeText(SAMPLE_TEXT, "ejemplo.md");

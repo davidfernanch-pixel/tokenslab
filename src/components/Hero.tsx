@@ -9,7 +9,14 @@ import { MODELS } from "@/lib/models.config";
 export function Hero() {
   return (
     <section className="relative overflow-hidden pb-10 pt-24 text-center sm:pt-28">
-      <div className="grid-pattern absolute inset-0" aria-hidden="true" />
+      <div
+        className="grid-pattern absolute inset-0 opacity-70"
+        aria-hidden="true"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-background"
+      />
       <div className="relative mx-auto max-w-3xl px-4">
         {/* Chip de privacidad */}
         <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground shadow-sm">

@@ -19,6 +19,7 @@ import { extractText, isCodeFile } from "@/lib/extractors";
 import { tokenizerClient } from "@/lib/tokenizers/client";
 import { getFileStats } from "@/lib/stats";
 import { formatBytes } from "@/lib/format";
+import { addHistoryEntry } from "@/lib/history";
 
 interface TokenLensState {
   // estado del análisis
@@ -32,6 +33,8 @@ interface TokenLensState {
   stats: FileStats | null;
   results: ModelResult[];
   progress: Progress | null;
+  /** el texto analizado parece código (pista para el optimizador) */
+  codeHint: boolean;
 
   // ajustes (persistidos)
   activeModels: string[];
@@ -75,6 +78,7 @@ export const useTokenLens = create<TokenLensState>()(
           kind: meta.kind,
           fileName: meta.fileName,
           fileSize: meta.fileSize,
+          codeHint: codeHint ?? false,
           status: "counting",
           error: null,
           results: [],
@@ -109,6 +113,23 @@ export const useTokenLens = create<TokenLensState>()(
             status: "done",
             progress: { phase: "done", label: "Análisis completado", percent: 100 },
           });
+          // Historial local (nunca sale del navegador)
+          try {
+            addHistoryEntry({
+              kind: meta.kind,
+              name: meta.fileName,
+              size: meta.fileSize,
+              stats,
+              text,
+              results: collected.map((r) => ({
+                modelId: r.modelId,
+                tokens: r.tokens,
+                precision: r.precision,
+              })),
+            });
+          } catch {
+            // El historial es opcional: si falla el almacenamiento, se ignora
+          }
         } catch {
           set({
             status: "error",
@@ -130,6 +151,7 @@ export const useTokenLens = create<TokenLensState>()(
         stats: null,
         results: [],
         progress: null,
+        codeHint: false,
 
         activeModels: DEFAULT_ACTIVE_MODELS,
         outputTokens: 1024,

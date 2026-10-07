@@ -45,7 +45,11 @@ export function PrecisionBadge({
             {meta.label}
           </span>
         </TooltipTrigger>
-        <TooltipContent className="max-w-52 text-xs">
+        <TooltipContent
+          className="max-w-52 text-xs"
+          collisionPadding={16}
+          avoidCollisions
+        >
           {meta.description}
         </TooltipContent>
       </Tooltip>

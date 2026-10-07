@@ -147,3 +147,31 @@
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
+
+/* ─── Pulido visual (Task 3-c) — utilidades aditivas ─── */
+/* Resplandor suave del primario (p. ej. arrastre sobre la dropzone).
+   Se usa var(--primary) porque @theme inline no emite --color-primary
+   como variable CSS real; el token raíz es consciente del tema. */
+.shadow-glow {
+  box-shadow: 0 0 40px -12px color-mix(in oklab, var(--primary) 45%, transparent);
+}
+
+/* Latido suave de opacidad para detalles decorativos. */
+@keyframes pulse-soft {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-soft {
+    animation: none;
+  }
+}

@@ -63,10 +63,11 @@ export function ResultCard({ result }: { result: ModelResult }) {
     >
       <div
         className={cn(
-          "group relative h-full overflow-hidden rounded-xl border bg-card p-5 transition-colors",
+          "group relative h-full overflow-hidden rounded-xl border bg-card p-5",
+          "motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-lg",
           fit.fits
-            ? "border-border hover:border-primary/40"
-            : "border-destructive/50 hover:border-destructive",
+            ? "border-border hover:border-primary/40 motion-safe:hover:shadow-primary/10"
+            : "border-destructive/50 hover:border-destructive motion-safe:hover:shadow-destructive/10",
         )}
       >
         {!fit.fits && (

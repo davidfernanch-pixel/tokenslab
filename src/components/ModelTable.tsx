@@ -161,7 +161,7 @@ export function ModelTable({
       <div className="custom-scrollbar overflow-x-auto">
         <Table className="min-w-[880px] text-sm">
           <TableHeader>
-            <TableRow>
+            <TableRow className="border-b-2! bg-muted/30 hover:bg-muted/30">
               {COLUMNS.map((col) => {
                 const isActive = sort.key === col.key;
                 return (
@@ -227,7 +227,7 @@ export function ModelTable({
               return (
                 <TableRow
                   key={row.model.id}
-                  className="border-b border-border transition-colors hover:bg-surface-elevated/50"
+                  className="border-b border-border transition-colors hover:bg-muted/40"
                 >
                   <TableCell className="px-4 py-3">
                     <div className="flex items-center gap-2.5">

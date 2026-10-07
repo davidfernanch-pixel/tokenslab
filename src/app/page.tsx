@@ -12,6 +12,11 @@ import { ModelTable } from "@/components/ModelTable";
 import { ExportMenu } from "@/components/ExportMenu";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { OutputTokensControl } from "@/components/OutputTokensControl";
+import { TokenVisualizer } from "@/components/TokenVisualizer";
+import { OptimizerPanel } from "@/components/OptimizerPanel";
+import { ChunkSplitter } from "@/components/ChunkSplitter";
+import { HistoryPanel } from "@/components/HistoryPanel";
+import { MonthlyCalculator } from "@/components/MonthlyCalculator";
 import { HowItWorks } from "@/components/HowItWorks";
 import { Faq } from "@/components/Faq";
 import { Footer } from "@/components/Footer";
@@ -115,6 +120,12 @@ export default function Home() {
           className="mx-auto w-full max-w-3xl px-4 sm:px-6"
         >
           <Dropzone />
+
+          {/* Utilidades siempre disponibles (histórico y planificación) */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <HistoryPanel />
+            <MonthlyCalculator />
+          </div>
         </section>
 
         {/* ── Panel de resultados ──────────────────────────────────────── */}
@@ -146,6 +157,20 @@ export default function Home() {
                 <SettingsPanel />
                 <ExportMenu />
               </div>
+            </div>
+
+            {/* Herramientas de análisis (Visualizar / Optimizar / Fragmentar) */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Herramientas
+              </span>
+              <span
+                aria-hidden="true"
+                className="h-px flex-1 bg-border"
+              />
+              <TokenVisualizer />
+              <OptimizerPanel />
+              <ChunkSplitter />
             </div>
 
             {/* Aviso de precios TODO */}

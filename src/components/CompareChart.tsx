@@ -97,6 +97,7 @@ export function CompareChart({ data }: { data: ChartDatum[] }) {
               <CartesianGrid
                 horizontal={false}
                 stroke="var(--border)"
+                strokeOpacity={0.6}
                 strokeDasharray="3 3"
               />
               <XAxis
@@ -118,11 +119,11 @@ export function CompareChart({ data }: { data: ChartDatum[] }) {
               />
               <Tooltip
                 cursor={{
-                  fill: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                  fill: "color-mix(in srgb, var(--primary) 7%, transparent)",
                 }}
                 content={<ChartTooltip />}
               />
-              <Bar dataKey="tokens" radius={[0, 4, 4, 0]} minPointSize={3}>
+              <Bar dataKey="tokens" radius={[0, 6, 6, 0]} minPointSize={3}>
                 {sorted.map((d) => (
                   <Cell key={d.id} fill={PROVIDERS[d.provider].color} />
                 ))}

@@ -57,7 +57,7 @@ export function FileStatsBar() {
         <div className="grid grid-cols-3 gap-x-6 gap-y-3 sm:flex sm:flex-wrap sm:items-center">
           {items.map((item) => (
             <div key={item.label} className="min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                 {item.label}
               </p>
               <p className="font-mono text-sm font-semibold tabular-nums">

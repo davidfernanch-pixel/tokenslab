@@ -58,13 +58,13 @@ export function Header() {
         >
           <a
             href="#como-funciona"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="relative text-sm text-muted-foreground transition-colors after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:rounded-full after:bg-primary after:scale-x-0 motion-safe:after:transition-transform motion-safe:after:duration-200 hover:text-foreground hover:after:scale-x-100 focus-visible:after:scale-x-100"
           >
             Cómo funciona
           </a>
           <a
             href="#faq"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="relative text-sm text-muted-foreground transition-colors after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:rounded-full after:bg-primary after:scale-x-0 motion-safe:after:transition-transform motion-safe:after:duration-200 hover:text-foreground hover:after:scale-x-100 focus-visible:after:scale-x-100"
           >
             FAQ
           </a>
