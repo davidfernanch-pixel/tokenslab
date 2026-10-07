@@ -15,6 +15,7 @@ import {
 
 import { PROVIDERS, PROVIDER_ORDER, type Provider } from "@/lib/models.config";
 import { formatCompact, formatNumber } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 export interface ChartDatum {
   id: string;
@@ -30,6 +31,7 @@ interface ChartTooltipProps {
 }
 
 function ChartTooltip({ active, payload, label }: ChartTooltipProps) {
+  const t = useT();
   if (!active || !payload?.length) return null;
   const datum = payload[0]?.payload;
   if (!datum) return null;
@@ -42,7 +44,7 @@ function ChartTooltip({ active, payload, label }: ChartTooltipProps) {
       <p className="font-mono text-sm font-semibold tabular-nums">
         {formatNumber(datum.tokens)}{" "}
         <span className="font-sans text-xs font-normal text-muted-foreground">
-          tokens
+          {t("common.tokens")}
         </span>
       </p>
     </div>
@@ -50,6 +52,7 @@ function ChartTooltip({ active, payload, label }: ChartTooltipProps) {
 }
 
 export function CompareChart({ data }: { data: ChartDatum[] }) {
+  const t = useT();
   const sorted = useMemo(
     () => [...data].sort((a, b) => a.tokens - b.tokens),
     [data],
@@ -66,9 +69,9 @@ export function CompareChart({ data }: { data: ChartDatum[] }) {
     <div className="rounded-xl border border-border bg-card">
       <div className="flex items-center justify-between gap-4 p-4 pb-0 sm:p-5 sm:pb-0">
         <div>
-          <h3 className="text-sm font-semibold">Comparativa de tokens</h3>
+          <h3 className="text-sm font-semibold">{t("chart.title")}</h3>
           <p className="text-xs text-muted-foreground">
-            Ordenado de menos a más tokens
+            {t("chart.subtitle")}
           </p>
         </div>
         <div className="hidden flex-wrap justify-end gap-x-3 gap-y-1 text-[10px] text-muted-foreground sm:flex">

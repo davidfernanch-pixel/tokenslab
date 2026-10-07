@@ -5,12 +5,12 @@ import { Image as ImageIcon, ImageOff, Lock } from "lucide-react";
 
 import { PrecisionBadge } from "@/components/PrecisionBadge";
 import {
-  IMAGE_FORMULAS,
   imageFormulaForModel,
   type ImageFormulaId,
 } from "@/lib/imageTokens";
 import { getModel, PROVIDERS, type ModelConfig } from "@/lib/models.config";
 import { formatNumber } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { selectActiveResults, useTokenLens } from "@/lib/store";
 
 interface VisionEstimate {
@@ -20,6 +20,7 @@ interface VisionEstimate {
 }
 
 export function ImageTokensCard() {
+  const t = useT();
   const status = useTokenLens((s) => s.status);
   // `files` es una referencia estable del store: el filtro se deran en el
   // render (un selector con .filter() devolvería un array nuevo en cada
@@ -74,7 +75,7 @@ export function ImageTokensCard() {
 
   return (
     <section
-      aria-label="Tokens de imagen"
+      aria-label={t("img.section.aria")}
       className="rounded-xl border border-border bg-card p-5"
     >
       {/* Cabecera */}
@@ -85,10 +86,10 @@ export function ImageTokensCard() {
           </div>
           <div className="min-w-0">
             <h3 className="text-sm font-semibold leading-tight">
-              Tokens de imagen
+              {t("img.title")}
             </h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Estimados con las fórmulas públicas de cada proveedor
+              {t("img.subtitle")}
             </p>
           </div>
         </div>
@@ -97,7 +98,7 @@ export function ImageTokensCard() {
 
       {/* Tira de imágenes analizadas */}
       <p className="mt-5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-        Imágenes ({images.length})
+        {t("img.count", { n: images.length })}
       </p>
       <div className="mt-2 flex flex-wrap gap-3">
         {images.map((file) => {
@@ -109,7 +110,11 @@ export function ImageTokensCard() {
                   src={file.previewUrl}
                   alt={
                     info
-                      ? `${file.name}, ${info.width} por ${info.height} píxeles`
+                      ? t("img.thumbAlt", {
+                          name: file.name,
+                          w: info.width,
+                          h: info.height,
+                        })
                       : file.name
                   }
                   className="h-14 w-14 rounded-lg border border-border object-cover"
@@ -142,7 +147,7 @@ export function ImageTokensCard() {
       {visionEstimates.length > 0 && (
         <>
           <p className="mt-5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            Por modelo de visión
+            {t("img.byModel")}
           </p>
           <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {visionEstimates.map(({ model, imageTokens, formulaId }) => (
@@ -168,7 +173,7 @@ export function ImageTokensCard() {
                   </span>
                 </div>
                 <span className="mt-1.5 inline-block max-w-full truncate rounded-full border border-border bg-surface-elevated px-2 py-0.5 text-[10px] text-muted-foreground">
-                  {IMAGE_FORMULAS[formulaId].label}
+                  {t(`img.formula.${formulaId}.label`)}
                 </span>
               </div>
             ))}
@@ -182,8 +187,11 @@ export function ImageTokensCard() {
           <ImageOff className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
           <span>
             {nonVisionCount === 1
-              ? `1 modelo sin soporte de imagen no lo cuenta (${nonVisionSample}).`
-              : `${nonVisionCount} modelos sin soporte de imagen no los cuentan (${nonVisionSample}${nonVisionEllipsis}).`}
+              ? t("img.noVision.single", { sample: nonVisionSample })
+              : t("img.noVision.plural", {
+                  n: nonVisionCount,
+                  sample: `${nonVisionSample}${nonVisionEllipsis}`,
+                })}
           </span>
         </p>
       )}
@@ -192,13 +200,15 @@ export function ImageTokensCard() {
       <div className="mt-4 space-y-1 border-t border-border pt-3">
         {usedFormulaIds.map((id) => (
           <p key={id} className="text-[10px] text-muted-foreground">
-            · {IMAGE_FORMULAS[id].label}:{" "}
-            <span className="font-mono">{IMAGE_FORMULAS[id].expression}</span>
+            · {t(`img.formula.${id}.label`)}:{" "}
+            <span className="font-mono">
+              {t(`img.formula.${id}.expression`)}
+            </span>
           </p>
         ))}
         <p className="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
           <Lock className="h-3 w-3 shrink-0 text-success" aria-hidden />
-          Las imágenes se analizan en tu navegador: nunca salen de tu equipo.
+          {t("img.privacy")}
         </p>
       </div>
     </section>

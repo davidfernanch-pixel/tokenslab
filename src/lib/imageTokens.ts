@@ -7,6 +7,11 @@
  * local). NO son conteos oficiales → el resultado se muestra siempre con la
  * insignia 🟡 Estimado.
  *
+ * Este módulo es NO React y solo expone DATOS (ids + flag `documented`):
+ * los textos visibles (label / expression / desc) viven en el diccionario
+ * i18n con las claves "img.formula.<id>.label|.expression|.desc"
+ * (src/lib/i18n/dict-data.ts) y se traducen en ImageTokensCard con useT().
+ *
  * Fuentes de las fórmulas (documentación pública, verificadas al crear el
  * archivo; revisar al actualizar):
  * - OpenAI (GPT-4o / GPT-4.1 / GPT-5 / o3): tokens = (ancho × alto) / 750,
@@ -31,52 +36,16 @@ export type ImageFormulaId =
   | "generic-750";
 
 export interface ImageFormulaInfo {
-  /** nombre corto para la UI */
-  label: string;
-  /** descripción de la fórmula en lenguaje natural */
-  description: string;
   /** la fórmula está documentada oficialmente por el proveedor */
   documented: boolean;
-  /** expresión mostrada en mono */
-  expression: string;
 }
 
 export const IMAGE_FORMULAS: Record<ImageFormulaId, ImageFormulaInfo> = {
-  "openai-750": {
-    label: "OpenAI (750 px²/token)",
-    description:
-      "Fórmula oficial de OpenAI para modelos de visión modernos (GPT-4o, GPT-4.1, o3, GPT-5).",
-    documented: true,
-    expression: "⌈ancho × alto ÷ 750⌉ (mín. 85)",
-  },
-  "openai-tiles-512": {
-    label: "OpenAI (mosaicos 512²)",
-    description:
-      "Fórmula oficial de los modelos legacy con mosaicos (GPT-4 Turbo): base + mosaicos de 512×512.",
-    documented: true,
-    expression: "85 + ⌈ancho÷512⌉ × ⌈alto÷512⌉ × 170",
-  },
-  "anthropic-750": {
-    label: "Anthropic (750 px²/token)",
-    description:
-      "Fórmula aproximada que documenta Anthropic para Claude 3/4: área dividida entre 750.",
-    documented: true,
-    expression: "⌈ancho × alto ÷ 750⌉",
-  },
-  "google-tiles-768": {
-    label: "Google (mosaicos 768²)",
-    description:
-      "Fórmula oficial de Gemini: 258 tokens por mosaico de 768×768 (mínimo 258).",
-    documented: true,
-    expression: "máx(258, ⌈ancho÷768⌉ × ⌈alto÷768⌉ × 258)",
-  },
-  "generic-750": {
-    label: "Genérica (750 px²/token)",
-    description:
-      "El proveedor no publica una fórmula de tokens de imagen: se aplica la fórmula genérica de área como aproximación.",
-    documented: false,
-    expression: "⌈ancho × alto ÷ 750⌉",
-  },
+  "openai-750": { documented: true },
+  "openai-tiles-512": { documented: true },
+  "anthropic-750": { documented: true },
+  "google-tiles-768": { documented: true },
+  "generic-750": { documented: false },
 };
 
 /** Fórmula que aplica a un modelo concreto. */

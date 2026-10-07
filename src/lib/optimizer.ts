@@ -10,6 +10,7 @@
  */
 
 import { estimateTokens } from "@/lib/tokenizers/estimate";
+import { tSync } from "@/lib/i18n";
 
 export type SuggestionId =
   | "trim-trailing"
@@ -42,8 +43,6 @@ export interface OptimizerReport {
 
 interface SuggestionDef {
   id: SuggestionId;
-  title: string;
-  description: string;
   risk: "safe" | "review";
   condition: (isCode: boolean, text: string) => boolean;
   apply: (text: string) => string;
@@ -68,9 +67,6 @@ const stripComments = (t: string) =>
 const DEFS: SuggestionDef[] = [
   {
     id: "minify-json",
-    title: "Minificar JSON",
-    description:
-      "El texto es JSON válido: se compacta sin espacios ni sangría. Mismo dato, menos tokens.",
     risk: "safe",
     condition: (_isCode, text) => {
       const t = text.trim();
@@ -93,36 +89,24 @@ const DEFS: SuggestionDef[] = [
   },
   {
     id: "strip-comments",
-    title: "Quitar comentarios",
-    description:
-      "Elimina comentarios de bloque (/* … */) y de línea completos (// o #). Revisa el resultado: en algunos formatos un # inicial es contenido.",
     risk: "review",
     condition: (isCode) => isCode,
     apply: stripComments,
   },
   {
     id: "collapse-blank-lines",
-    title: "Colapsar líneas en blanco",
-    description:
-      "Tres o más saltos de línea seguidos se reducen a una línea en blanco.",
     risk: "safe",
     condition: () => true,
     apply: collapseBlankLines,
   },
   {
     id: "trim-trailing",
-    title: "Quitar espacios finales",
-    description:
-      "Espacios y tabulaciones al final de cada línea (y del archivo). No afecta a la sangría inicial.",
     risk: "safe",
     condition: () => true,
     apply: trimTrailing,
   },
   {
     id: "collapse-spaces",
-    title: "Colapsar espacios repetidos",
-    description:
-      "Dos o más espacios seguidos dentro de una línea se reducen a uno. No se aplica a código (alineación) y puede afectar a tablas alineadas.",
     risk: "review",
     condition: (isCode) => !isCode,
     apply: collapseSpaces,
@@ -145,8 +129,8 @@ export function buildSuggestions(
       : 0;
     return {
       id: def.id,
-      title: def.title,
-      description: def.description,
+      title: tSync(`optimizer.${def.id}.title`),
+      description: tSync(`optimizer.${def.id}.desc`),
       risk: def.risk,
       charsSaved,
       percent: chars > 0 ? (charsSaved / chars) * 100 : 0,

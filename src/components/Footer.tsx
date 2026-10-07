@@ -1,6 +1,7 @@
 import { ShieldCheck } from "lucide-react";
 
 import { PROVIDERS, PROVIDER_ORDER } from "@/lib/models.config";
+import { useT } from "@/lib/i18n";
 
 /**
  * Pie de página. La clase `mt-auto` es clave: la página envuelve todo en un
@@ -8,6 +9,8 @@ import { PROVIDERS, PROVIDER_ORDER } from "@/lib/models.config";
  * sea corto.
  */
 export function Footer() {
+  const t = useT();
+
   return (
     <footer className="mt-auto bg-card/50">
       {/* Línea de luz superior con degradado de marca */}
@@ -40,43 +43,42 @@ export function Footer() {
               </span>
             </div>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Calculadora de tokens multi-IA, sin registro y sin subidas.
+              {t("footer.tagline")}
             </p>
             <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-              Procesamiento 100 % local
+              {t("footer.local")}
             </span>
           </div>
 
           {/* Precisión */}
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Precisión
+              {t("footer.precision.title")}
             </h3>
             <div className="mt-3 space-y-2 text-sm">
               <a
                 href="#como-funciona"
                 className="block text-muted-foreground transition-colors hover:text-foreground"
               >
-                Cómo funciona
+                {t("footer.link.how")}
               </a>
               <a
                 href="#faq"
                 className="block text-muted-foreground transition-colors hover:text-foreground"
               >
-                FAQ
+                {t("footer.link.faq")}
               </a>
             </div>
             <p className="mt-3 text-xs text-muted-foreground/70">
-              Precios y ventanas en models.config.ts (TODO hasta verificar con
-              fuentes oficiales).
+              {t("footer.precision.note")}
             </p>
           </div>
 
           {/* Proveedores */}
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Proveedores
+              {t("footer.providers.title")}
             </h3>
             <ul className="mt-3 space-y-2">
               {PROVIDER_ORDER.map((provider) => (
@@ -94,7 +96,7 @@ export function Footer() {
               ))}
             </ul>
             <p className="mt-3 text-xs text-muted-foreground/70">
-              Sin afiliación con ningún proveedor. Solo colores y nombres.
+              {t("footer.providers.note")}
             </p>
           </div>
         </div>
@@ -102,8 +104,7 @@ export function Footer() {
         {/* Fila inferior */}
         <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 sm:flex-row">
           <p className="text-xs text-muted-foreground">
-            Los precios y las ventanas de contexto cambian con frecuencia:
-            verifica siempre la documentación oficial.
+            {t("footer.disclaimer")}
           </p>
           <p className="font-mono text-xs text-muted-foreground/70">
             TokenLens · {new Date().getFullYear()}

@@ -21,16 +21,9 @@ import {
   formatWindow,
 } from "@/lib/format";
 import { useTokenLens } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 import type { ModelResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const PRICE_TODO_HINT =
-  "Precios pendientes: rellena priceInPerM/priceOutPerM en models.config.ts con valores de las páginas oficiales.";
-
-const IMAGE_ESTIMATE_HINT =
-  "tokens de imagen estimados por fórmula pública";
-const NO_VISION_HINT =
-  "Este modelo no admite imágenes: solo se cuentan los tokens del texto.";
 
 export function ResultCard({
   result,
@@ -40,6 +33,7 @@ export function ResultCard({
   /** posición en la rejilla (escalona la animación de entrada) */
   index?: number;
 }) {
+  const t = useT();
   const outputTokens = useTokenLens((s) => s.outputTokens);
   const currency = useTokenLens((s) => s.currency);
   const hasImages = useTokenLens((s) =>
@@ -75,7 +69,10 @@ export function ResultCard({
   return (
     <motion.div
       role="article"
-      aria-label={`${model.name}: ${result.tokens} tokens`}
+      aria-label={t("result.aria", {
+        name: model.name,
+        tokens: result.tokens,
+      })}
       className="h-full"
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
@@ -126,7 +123,7 @@ export function ResultCard({
                 <span className="truncate">{model.name}</span>
                 {isNewRelease(model) && (
                   <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-500/10 px-1.5 py-px font-mono text-[9px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                    nuevo
+                    {t("common.new")}
                   </span>
                 )}
               </h3>
@@ -145,7 +142,7 @@ export function ResultCard({
           >
             {formatNumber(animated)}
           </span>
-          <span className="text-sm text-muted-foreground">tokens</span>
+          <span className="text-sm text-muted-foreground">{t("common.tokens")}</span>
         </div>
 
         {/* Desglose texto · imagen (solo con imágenes y modelo con visión) */}
@@ -153,7 +150,7 @@ export function ResultCard({
           <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
             <Type className="h-3 w-3 shrink-0" aria-hidden />
             <span>
-              Texto{" "}
+              {t("result.text")}{" "}
               <span className="font-mono font-medium tabular-nums">
                 {formatNumber(textTokens)}
               </span>
@@ -161,13 +158,13 @@ export function ResultCard({
             <span aria-hidden>·</span>
             <ImageIcon className="h-3 w-3 shrink-0" aria-hidden />
             <span className="inline-flex items-center gap-1">
-              Imagen{" "}
+              {t("result.image")}{" "}
               <span className="font-mono font-medium tabular-nums">
                 {formatNumber(imageTokens)}
               </span>
               <span
                 className="h-1.5 w-1.5 rounded-full bg-warning"
-                title={IMAGE_ESTIMATE_HINT}
+                title={t("result.image.estimateHint")}
               />
             </span>
           </div>
@@ -175,7 +172,7 @@ export function ResultCard({
 
         {/* Barra de uso de la ventana */}
         <div className="mt-4 flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Ventana de contexto</span>
+          <span className="text-muted-foreground">{t("result.contextWindow")}</span>
           <span className={cn("font-mono font-medium tabular-nums", toneTextClass)}>
             {formatPercent(fit.percent)}
           </span>
@@ -193,14 +190,14 @@ export function ResultCard({
         {/* Meta */}
         <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
           <div>
-            <p className="text-muted-foreground">Ventana</p>
+            <p className="text-muted-foreground">{t("result.window")}</p>
             <p className="font-mono font-medium tabular-nums">
               {formatWindow(model.contextWindow)}
             </p>
           </div>
           <div>
             <p className="text-muted-foreground">
-              {fit.fits ? "Restante" : "Exceso"}
+              {fit.fits ? t("result.remaining") : t("result.overflow")}
             </p>
             <p className="font-mono font-medium tabular-nums">
               {fit.fits ? (
@@ -214,7 +211,7 @@ export function ResultCard({
           </div>
           <div className="col-span-2">
             <p className="text-muted-foreground">
-              Coste estimado (entrada + {formatNumber(outputTokens)} de salida)
+              {t("result.cost", { n: formatNumber(outputTokens) })}
             </p>
             {cost != null ? (
               <p className="font-mono font-medium tabular-nums">
@@ -232,7 +229,7 @@ export function ResultCard({
                   </span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-52 text-xs">
-                  {PRICE_TODO_HINT}
+                  {t("result.price.todo")}
                 </TooltipContent>
               </Tooltip>
             )}
@@ -245,21 +242,21 @@ export function ResultCard({
             {fit.fits ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
                 <Check className="h-3 w-3" />
-                Cabe
+                {t("result.fits")}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
                 <X className="h-3 w-3" />
-                No cabe · +{formatCompact(fit.overflow)}
+                {t("result.noFits", { n: formatCompact(fit.overflow) })}
               </span>
             )}
             {hasImages && !model.vision && (
               <span
                 className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
-                title={NO_VISION_HINT}
+                title={t("result.noVisionHint")}
               >
                 <ImageOff className="h-3 w-3" aria-hidden />
-                No admite imágenes
+                {t("result.noVision")}
               </span>
             )}
           </div>

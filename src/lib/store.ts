@@ -26,6 +26,7 @@ import { getFileStats } from "@/lib/stats";
 import { formatBytes } from "@/lib/format";
 import { estimateImageTokensForModel } from "@/lib/imageTokens";
 import { addHistoryEntry } from "@/lib/history";
+import { tSync } from "@/lib/i18n";
 import {
   fetchOfficialCount,
   isByokCandidate,
@@ -101,7 +102,9 @@ function newId(): string {
 }
 
 function fileLabel(files: AnalyzedFile[]): string {
-  return files.length === 1 ? files[0].name : `${files.length} archivos`;
+  return files.length === 1
+    ? files[0].name
+    : tSync("store.fileLabel", { n: files.length });
 }
 
 function totalSize(files: AnalyzedFile[]): number {
@@ -238,7 +241,7 @@ export const useTokenLens = create<TokenLensState>()(
           status: "counting",
           error: null,
           results: [],
-          progress: { phase: "count", label: "Contando tokens…", percent: 0 },
+          progress: { phase: "count", label: tSync("store.progress.counting"), percent: 0 },
           byok: { phase: "idle", upgraded: 0, failed: 0, error: null },
           byokRun: runId,
         });
@@ -337,7 +340,7 @@ export const useTokenLens = create<TokenLensState>()(
                   set({
                     progress: {
                       phase: "count",
-                      label: "Contando tokens…",
+                      label: tSync("store.progress.counting"),
                       percent: Math.round(fileProgress * 100),
                     },
                   });
@@ -357,7 +360,7 @@ export const useTokenLens = create<TokenLensState>()(
 
           set({
             status: "done",
-            progress: { phase: "done", label: "Análisis completado", percent: 100 },
+            progress: { phase: "done", label: tSync("store.progress.done"), percent: 100 },
           });
 
           // Fase BYOK: pedir conteos oficiales (Anthropic/Google) si el
@@ -393,8 +396,7 @@ export const useTokenLens = create<TokenLensState>()(
         } catch {
           set({
             status: "error",
-            error:
-              "No se pudieron contar los tokens. Inténtalo de nuevo con un archivo más pequeño.",
+            error: tSync("store.error.count"),
             progress: null,
           });
         }
@@ -435,21 +437,22 @@ export const useTokenLens = create<TokenLensState>()(
             if (!isSupportedFile(file) && !isImageFile(file)) {
               const ext = file.name.includes(".")
                 ? `.${file.name.split(".").pop()?.toLowerCase()}`
-                : file.type || "desconocido";
-              rejections.push(
-                `${file.name} (formato no admitido: ${ext})`,
-              );
+                : file.type || tSync("store.unknownType");
+              rejections.push(tSync("store.rejected.format", { name: file.name, ext }));
               continue;
             }
             if (file.size > MAX_FILE_SIZE) {
               rejections.push(
-                `${file.name} (pesa ${formatBytes(file.size)}, límite 20 MB)`,
+                tSync("store.rejected.size", {
+                  name: file.name,
+                  size: formatBytes(file.size),
+                }),
               );
               continue;
             }
             if (existing.length + accepted.length + 1 > MAX_FILES) {
               rejections.push(
-                `${file.name} (límite de ${MAX_FILES} archivos por análisis)`,
+                tSync("store.rejected.limit", { name: file.name, n: MAX_FILES }),
               );
               continue;
             }
@@ -461,10 +464,10 @@ export const useTokenLens = create<TokenLensState>()(
               status: "error",
               error:
                 existing.length > 0
-                  ? `No se añadió ningún archivo. Se omitieron: ${rejections.join(" · ")}.`
+                  ? tSync("store.error.noneAdded", { list: rejections.join(" · ") })
                   : rejections.length > 0
-                    ? `No se pudo analizar. Se omitieron: ${rejections.join(" · ")}.`
-                    : "No se recibió ningún archivo.",
+                    ? tSync("store.error.rejected", { list: rejections.join(" · ") })
+                    : tSync("store.error.noFiles"),
               progress: null,
             });
             return;
@@ -481,14 +484,17 @@ export const useTokenLens = create<TokenLensState>()(
             fileSize: null,
             progress: {
               phase: "extract",
-              label: `Extrayendo ${accepted.length === 1 ? `“${accepted[0].name}”` : `${accepted.length} archivos`}…`,
+              label:
+                accepted.length === 1
+                  ? tSync("store.progress.extractingOne", { name: accepted[0].name })
+                  : tSync("store.progress.extractingMany", { n: accepted.length }),
               percent: 0,
             },
           });
 
           const extracted: AnalyzedFile[] = [];
           const warnings: string[] = rejections.length > 0
-            ? [`Archivos omitidos: ${rejections.join(" · ")}.`]
+            ? [tSync("store.warning.skipped", { list: rejections.join(" · ") })]
             : [];
 
           try {
@@ -519,7 +525,7 @@ export const useTokenLens = create<TokenLensState>()(
                   set({
                     progress: {
                       phase: "extract",
-                      label: `Extrayendo “${file.name}” (${i + 1}/${accepted.length})…`,
+                      label: tSync("store.progress.extractingStep", { name: file.name, i: i + 1, n: accepted.length }),
                       percent: Math.round(
                         ((i + percent / 100) / accepted.length) * 100,
                       ),
@@ -545,7 +551,7 @@ export const useTokenLens = create<TokenLensState>()(
               set({
                 progress: {
                   phase: "extract",
-                  label: `Extrayendo “${file.name}” (${i + 1}/${accepted.length})…`,
+                  label: tSync("store.progress.extractingStep", { name: file.name, i: i + 1, n: accepted.length }),
                   percent: Math.round(((i + 1) / accepted.length) * 100),
                 },
               });
@@ -567,8 +573,8 @@ export const useTokenLens = create<TokenLensState>()(
               status: "error",
               error:
                 warnings.length > 0
-                  ? `No se pudo extraer contenido de ningún archivo. ${warnings.join(" · ")}`
-                  : "No se pudo extraer texto de los archivos (pueden estar vacíos o dañados).",
+                  ? tSync("store.error.extractMixed", { list: warnings.join(" · ") })
+                  : tSync("store.error.extractEmpty"),
               progress: null,
             });
             return;
@@ -604,7 +610,7 @@ export const useTokenLens = create<TokenLensState>()(
             files: [],
             progress: {
               phase: "extract",
-              label: "Preparando texto…",
+              label: tSync("store.progress.preparing"),
               percent: 100,
             },
           });

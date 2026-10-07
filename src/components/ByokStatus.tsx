@@ -3,7 +3,7 @@
 import { CloudCheck, CloudOff, Loader2 } from "lucide-react";
 
 import { useTokenLens } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { useLang, useT } from "@/lib/i18n";
 
 /**
  * Chip de estado del conteo oficial (BYOK) en la cabecera de resultados:
@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
  * - fallo: aviso discreto con tooltip del error
  */
 export function ByokStatus() {
+  const t = useT();
+  const lang = useLang((s) => s.lang);
   const byok = useTokenLens((s) => s.byok);
   const showResults = useTokenLens((s) => s.results.length > 0);
   if (!showResults) return null;
@@ -26,28 +28,46 @@ export function ByokStatus() {
           className="h-3 w-3 animate-spin motion-reduce:animate-none"
           aria-hidden
         />
-        conteo oficial…
+        {t("byok.status.running")}
       </span>
     );
   }
 
   if (byok.phase === "done") {
+    /** Traduce los mensajes fijos del proxy (siempre en español) al idioma UI. */
+    const trError = (raw: string): string => {
+      if (raw.includes("no es válida")) return t("byok.err.invalidKey");
+      if (raw.includes("no existe en la API")) return t("byok.err.modelNotFound");
+      if (raw.includes("Límite de peticiones")) return t("byok.err.rateLimit");
+      if (raw.includes("incidencia temporal")) return t("byok.err.providerDown");
+      if (raw.includes("No se pudo contactar con la API")) return t("byok.err.noContact");
+      if (raw.includes("/api/count")) return t("byok.err.noProxy");
+      return raw;
+    };
+
     if (byok.upgraded > 0) {
       return (
         <span
           className="inline-flex items-center gap-1.5 rounded-full border border-google/30 bg-google/10 px-2 py-0.5 font-mono text-[11px] text-google"
           title={
             byok.failed > 0
-              ? `${byok.failed} modelo(s) no pudieron consultarse: ${byok.error ?? "error desconocido"}`
-              : "Conteos oficiales obtenidos de las APIs de Anthropic/Google con tus keys (BYOK)"
+              ? t("byok.status.failed.tip", {
+                  n: byok.failed,
+                  error: trError(byok.error ?? "—"),
+                })
+              : t("byok.status.done.tip")
           }
         >
           <CloudCheck className="h-3 w-3" aria-hidden />
-          {byok.upgraded} oficial{byok.upgraded !== 1 ? "es" : ""}
+          {t("byok.status.done", {
+            n: byok.upgraded,
+            plural:
+              lang === "es" && byok.upgraded !== 1 ? "es" : "",
+          })}
           {byok.failed > 0 && (
             <span
-              className={cn("text-warning")}
-              aria-label={`${byok.failed} consultas fallidas`}
+              className="text-warning"
+              aria-label={`${byok.failed} failed`}
             >
               ·{byok.failed}⚠
             </span>
@@ -60,10 +80,10 @@ export function ByokStatus() {
       return (
         <span
           className="inline-flex cursor-help items-center gap-1.5 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 font-mono text-[11px] text-warning"
-          title={byok.error ?? "Error desconocido al consultar la API"}
+          title={byok.error ? trError(byok.error) : t("byok.status.unavailable.tip")}
         >
           <CloudOff className="h-3 w-3" aria-hidden />
-          API no disponible
+          {t("byok.status.unavailable")}
         </span>
       );
     }

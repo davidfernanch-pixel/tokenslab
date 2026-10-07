@@ -1,6 +1,7 @@
 import { BarChart3, Lock, ShieldCheck, Zap } from "lucide-react";
 
 import { MODELS } from "@/lib/models.config";
+import { useT } from "@/lib/i18n";
 
 /**
  * Hero de la portada: mensaje de privacidad, titular con gradiente de marca
@@ -9,6 +10,8 @@ import { MODELS } from "@/lib/models.config";
  * coloca la página debajo.
  */
 export function Hero() {
+  const t = useT();
+
   return (
     <section className="relative overflow-hidden pb-10 pt-24 text-center sm:pt-28">
       <div
@@ -28,26 +31,23 @@ export function Hero() {
         {/* Chip de privacidad */}
         <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground shadow-sm">
           <Lock className="h-3.5 w-3.5 text-success" aria-hidden="true" />
-          Tu archivo no sale de tu navegador
+          {t("hero.privacy.chip")}
         </div>
 
         {/* Titular */}
         <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-          ¿Cuántos{" "}
+          {t("hero.title.a")}{" "}
           <span className="bg-gradient-to-r from-primary via-[#9479FF] to-primary bg-clip-text text-transparent">
             tokens
           </span>{" "}
-          es tu texto{" "}
+          {t("hero.title.b")}{" "}
           <br className="hidden sm:block" />
-          en cada modelo de IA?
+          {t("hero.title.c")}
         </h1>
 
         {/* Subtítulo */}
         <p className="mt-6 text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-          Sube un archivo o pega texto y compara tokens, uso de la ventana de
-          contexto y coste estimado entre GPT, Claude, Gemini, Llama, Mistral,
-          DeepSeek, Grok y Qwen. Todo el procesamiento ocurre en tu navegador,
-          sin subidas ni registro.
+          {t("hero.subtitle")}
         </p>
 
         {/* Chips de confianza */}
@@ -59,7 +59,7 @@ export function Hero() {
             >
               <ShieldCheck className="h-3.5 w-3.5 text-primary" />
             </span>
-            Procesamiento 100 % local
+            {t("hero.chip.local")}
           </span>
           <span className="inline-flex items-center gap-2">
             <span
@@ -68,7 +68,7 @@ export function Hero() {
             >
               <Zap className="h-3.5 w-3.5 text-primary" />
             </span>
-            Resultados al instante
+            {t("hero.chip.instant")}
           </span>
           <span className="inline-flex items-center gap-2">
             <span
@@ -79,8 +79,9 @@ export function Hero() {
             </span>
             <span>
               <span className="font-mono tabular-nums">{MODELS.length}</span>{" "}
-              modelos ·{" "}
-              <span className="font-mono tabular-nums">8</span> proveedores
+              {t("hero.chip.models")} ·{" "}
+              <span className="font-mono tabular-nums">8</span>{" "}
+              {t("hero.chip.providers")}
             </span>
           </span>
         </div>

@@ -5,11 +5,14 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useLocale, useT } from "@/lib/i18n";
 import { selectActiveResults, useTokenLens } from "@/lib/store";
 import { formatBytes, formatNumber } from "@/lib/format";
 import type { AnalyzedFile } from "@/lib/types";
 
 export function FileStatsBar() {
+  const t = useT();
+  const locale = useLocale();
   const fileName = useTokenLens((s) => s.fileName);
   const fileSize = useTokenLens((s) => s.fileSize);
   const stats = useTokenLens((s) => s.stats);
@@ -37,21 +40,21 @@ export function FileStatsBar() {
   const textCount = files.length - imageCount;
 
   const items: Array<{ label: string; value: string }> = [
-    { label: "Caracteres", value: formatNumber(stats.chars) },
-    { label: "Palabras", value: formatNumber(stats.words) },
-    { label: "Líneas", value: formatNumber(stats.lines) },
-    { label: "Páginas ≈", value: formatNumber(stats.pages) },
+    { label: t("stats.chars"), value: formatNumber(stats.chars) },
+    { label: t("stats.words"), value: formatNumber(stats.words) },
+    { label: t("stats.lines"), value: formatNumber(stats.lines) },
+    { label: t("stats.pages"), value: formatNumber(stats.pages) },
     // solo aparece cuando el análisis incluye imágenes
     ...(imageCount > 0
-      ? [{ label: "Imágenes", value: formatNumber(imageCount) }]
+      ? [{ label: t("stats.images"), value: formatNumber(imageCount) }]
       : []),
     // sin texto (solo imágenes) o sin tokens de referencia la media no
     // aporta nada: se oculta en lugar de mostrar un 0 engañoso.
     ...(stats.chars > 0 && avgTextTokens > 0
       ? [
           {
-            label: "Caracteres/token",
-            value: (stats.chars / avgTextTokens).toLocaleString("es-ES", {
+            label: t("stats.charsPerToken"),
+            value: (stats.chars / avgTextTokens).toLocaleString(locale, {
               maximumFractionDigits: 1,
             }),
           },
@@ -99,7 +102,7 @@ export function FileStatsBar() {
         <>
           <Separator className="mt-4" />
           <ul
-            aria-label="Archivos del análisis"
+            aria-label={t("stats.files.aria")}
             className="relative mt-3 flex flex-wrap gap-1.5"
           >
             <AnimatePresence initial={false} mode="popLayout">
@@ -131,6 +134,7 @@ function FileChip({
   reducedMotion: boolean;
   onRemove: (id: string) => void;
 }) {
+  const t = useT();
   const isImage = file.kind === "image";
 
   return (
@@ -174,11 +178,11 @@ function FileChip({
 
       {!isImage && file.exactTokens != null && (
         <span
-          title="conteo exacto o200k en tu navegador"
+          title={t("stats.exactTooltip")}
           className="inline-flex shrink-0 items-center gap-1 font-mono text-[11px] tabular-nums text-muted-foreground"
         >
           <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
-          {formatNumber(file.exactTokens)} tokens
+          {formatNumber(file.exactTokens)} {t("common.tokens")}
         </span>
       )}
       {!isImage && file.exactTokens == null && busy && (
@@ -194,7 +198,7 @@ function FileChip({
         variant="ghost"
         size="icon"
         className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-        aria-label={`Quitar ${file.name}`}
+        aria-label={t("stats.removeFile", { name: file.name })}
         disabled={busy}
         onClick={() => onRemove(file.id)}
       >

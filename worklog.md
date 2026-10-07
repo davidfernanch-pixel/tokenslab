@@ -452,3 +452,111 @@ TokenLens completa fases 1-4 + catálogo oct-2026 + ahora el modo BYOK de fase 3
 - Precios: 27 modelos siguen null; EUR sin tipo de cambio.
 - Prioridades siguientes: 1) tokenizadores HF locales vía transformers.js (🟢 Exacto para Llama/DeepSeek/Qwen/Mistral); 2) i18n ES/EN real; 3) re-verificar precios desde páginas oficiales; 4) medición de latencia por modelo en la tabla.
 - Riesgo menor: duplicación de módulos por HMR de Turbopack en desarrollo (zustand) — recargar la página tras editar stores.
+
+---
+Task ID: 16-c
+Agent: subagent (content i18n)
+Task: Convertir al i18n real ES/EN las secciones de contenido: HowItWorks, Faq, Footer y las cadenas de usuario de store.ts (progreso/error/rechazos), rellenando dict-content.ts.
+
+Work Log:
+- Leído worklog (Tasks 14-15), lib/i18n/index.ts (useT/tSync), dict-core.ts y Hero.tsx (patrón de conversión). Verificado que no hay riesgo de import circular: store.ts → i18n → {dict-*, types, sample} y ninguno importa store.
+- src/lib/i18n/dict-content.ts: rellenados CONTENT_ES y CONTENT_EN con 42 claves por idioma — how. (12: kicker/title/subtitle, 3 steps × title+desc, badges.title, badges.intro, config.note), faq. (14: kicker, title, q1-q6, a1-a6 incluida la pregunta BYOK), footer. (9: tagline, local, precision.title, link.how, link.faq, precision.note, providers.title, providers.note, disclaimer), store. (7: progress.counting/done/preparing, error.count, rejected.format/size/limit con interpolación {name}/{ext}/{size}/{n}).
+- HowItWorks.tsx: useT() + arrays STEPS/PRECISION_LEVELS movidos dentro del componente (interfaces intactas). Etiquetas y descripciones de precisión REUTILIZANDO las claves existentes de dict-core (precision.exact/official/estimated + .desc), sin duplicar. NOTA: las descripciones de insignia pierden el matiz "(insignia verde/azul/ámbar)" porque ahora usan el texto único de dict-core; el punto de color junto a cada ítem ya lo comunica. JSX, classNames, id="como-funciona" y estructura sin cambios.
+- Faq.tsx: useT() + FAQS construido dentro del componente con t("faq.q1"…"faq.a6"); values del accordion (privacidad, byok, insignias…) intactos como ids estables. Cabecera → faq.kicker/faq.title.
+- Footer.tsx: useT() + todo el texto visible traducido (tagline, chip local, títulos de columnas, links, notas, disclaimer). "TokenLens · {año}" y labels de proveedores quedan como marca (no se traducen).
+- store.ts: import { tSync } de "@/lib/i18n" y sustitución EXACTA de las 7 cadenas pedidas: "Contando tokens…" (×2: set inicial y callback model-done), "Análisis completado", "Preparando texto…", error "No se pudieron contar…" y los 3 rechazos de analyzeFiles convertidos de template literals a tSync con interpolación (rejected.format {name,ext}, rejected.size {name,size=formatBytes(file.size)} — "límite 20 MB" literal igual que el original —, rejected.limit {name,n=MAX_FILES}). Cero cambios de lógica: mismos sets, misma persistencia, mismas guardas byokRun; el resto de mensajes del store quedan intactos (fuera del alcance de 16-c).
+- Verificación: script efímero confirmó paridad ES/EN 42/42, resolución de todas las claves usadas y interpolación correcta. grep confirmó que las cadenas objetivo ya solo existen en dict-content.ts.
+
+Stage Summary:
+- Entrega: 5 archivos tocados — dict-content.ts (nuevo contenido, 84 claves totales: 42 ES + 42 EN), HowItWorks.tsx, Faq.tsx, Footer.tsx convertidos a useT(); store.ts con tSync() en sus 7 cadenas de usuario.
+- Resultados: bun run lint → 0 problemas; bunx tsc --noEmit → 0 errores en src/ (exit 1 solo por 4 errores preexistentes en examples/skills, filtrados según protocolo); dev.log compila limpio (✓ Compiled, GET / 200).
+- Decisiones: (1) reutilizar precision.* de dict-core en HowItWorks tal y como ordenaba la spec, asumiendo el pequeño cambio de wording de las descripciones de insignia; (2) claves propias footer.local/footer.link.how en vez de reusar hero.chip.local/header.nav.how para desacoplar superficies y respetar el prefijo "footer." asignado; (3) "20 MB" y MAX_FILES se mantienen con los mismos datos que el original (límite literal en el texto ES/EN, {n} interpolado); (4) "desconocido" (fallback de ext) y los mensajes resumen de rechazos ("No se añadió ningún archivo…") NO se tocaron por estar fuera de la lista explícita de la misión — candidatos a una pasada futura de i18n.
+
+---
+Task ID: 16-b
+Agent: subagent (data i18n)
+Task: Convertir al i18n real ES/EN las superficies de datos del proyecto (dropzone, barra de estadísticas, tarjetas de resultado, tokens de imagen, gráfico comparativo, tabla de modelos y exportación), rellenando el diccionario dict-data.ts. Infraestructura creada por el orquestador (Task 16).
+
+Work Log:
+- Contexto: worklog.md (últimas secciones), lib/i18n/index.ts, dict-core.ts, Hero.tsx y PrecisionBadge.tsx como patrón. Grep previo de prefijos: 0 colisiones con dict-tools/dict-content (agentes 16-a/16-c en paralelo).
+- src/lib/i18n/dict-data.ts — 137 claves ES + 137 EN (paridad y unicidad verificadas por script): drop. (18), stats. (9), result. (14), img. (9) + img.formula.* (15 = 5 fórmulas × label/expression/desc), chart. (2), table. (14), export. (56 = 9 menú + 15 CSV + 20 JSON + 12 Markdown).
+- Dropzone.tsx — import de SAMPLE_TEXT eliminado → useSampleText(); "ejemplo.md" del botón de ejemplo también se traduce (drop.sample.file); plurales imagen/imágenes con dos claves + {n}; aria-labels, alertas e idle traducidos. Lógica/estilos intactos.
+- FileStatsBar.tsx — useT() + useLocale() (media caracteres/token con locale activo en vez de "es-ES" quemado); FileChip con su propio useT(); "tokens" del chip → common.tokens (dict-core).
+- ResultCard.tsx — constantes PRICE_TODO_HINT/IMAGE_ESTIMATE_HINT/NO_VISION_HINT sustituidas por result.price.todo/result.image.estimateHint/result.noVisionHint; "nuevo" → common.new; "Cabe"/"No cabe · +{n}", "Ventana", "Restante"/"Exceso", coste estimado ({n}) y aria-label con interpolación.
+- imageTokens.ts — DECISIÓN: módulo solo datos. ImageFormulaInfo reducido a { documented }; IMAGE_FORMULAS mantiene los 5 ids; label/description/expression movidos a dict-data como img.formula.<id>.label|.expression|.desc y traducidos en ImageTokensCard con t(`img.formula.${id}.…`). Firmas de imageFormulaForModel / estimateImageTokensFor / estimateImageTokensForModel intactas (store.ts NO tocado, sigue igual).
+- ImageTokensCard.tsx — ya no importa IMAGE_FORMULAS; chip de fórmula, lista de fórmulas (label + expression), nota single/plural de modelos sin visión ({sample}) y alt de miniaturas ({name}/{w}/{h}) traducidos.
+- CompareChart.tsx — useT() en CompareChart y en ChartTooltip; título/subtítulo → chart.*; "tokens" del tooltip → common.tokens. Ejes/leyenda con nombres de marca y formatCompact ya locale-aware.
+- ModelTable.tsx — COLUMNS pasa de label a labelKey (traducción en render); PRICE_TODO_HINT → table.priceTodo (3 tooltips); desglose "texto {text} + img {img}"; tooltip de coste "{in} entrada + {out} salida ({n} tokens)"; Cabe/No cabe → table.fits/table.noFits. aria-sort conserva los tokens estándar de ARIA (no traducibles).
+- export.ts — DECISIÓN: tSync de "@/lib/i18n" (módulo no React). Cabeceras CSV, sí/no/pendiente, TODOS los nombres de campo JSON ([f("model")]…; id/tokens/precision literales por coincidir en ambos idiomas), aviso JSON y las 12 etiquetas Markdown traducidos; números con toLocaleString(currentLocale()) y separador decimal según idioma (coma ES / punto EN), mismo criterio que format.ts. downloadBlob/copyToClipboard/escCSV intactos.
+- ExportMenu.tsx — useT(); slug/meta por defecto "resultados"/"results"; menú, aria-label y toasts traducidos. Fix lint react-hooks/preserve-manual-memoization: t no puede vivir dentro del useMemo → const defaultName = t("export.defaultSlug") (string estable) añadido a las deps.
+- Verificación: bun run lint → 0 problemas; bunx tsc --noEmit → 0 errores en src/ (exit 0); paridad ES/EN 137/137; curl / → 200 con "Arrastra tus archivos aquí" renderizado por SSR desde dict-data; dev.log compila limpio.
+
+Stage Summary:
+- ESTADO: las 9 superficies de datos de la lista están 100 % i18n; dict-data.ts pasa de vacío a 274 claves (137 ES + 137 EN). El toggle ES/EN de la cabecera ahora traduce también dropzone, estadísticas, tarjetas, imágenes (fórmulas incluidas), gráfico, tabla y exportaciones (los CSV/JSON/MD salen con cabeceras y separador decimal del idioma activo).
+- DECISIONES: imageTokens.ts queda como módulo de solo datos (ids + flag documented) y todo su texto vive en dict-data — la API interna usada por store.ts no cambia; export.ts usa tSync + currentLocale (traducción de cabeceras y formato numérico según idioma); plurales con claves separadas (el interpolador no tiene reglas de plural); "tokens" y "nuevo" reutilizan common.tokens/common.new de dict-core; el archivo del ejemplo se traduce (ejemplo.md → example.md).
+- RESULTADOS: lint 0/0, tsc 0 errores en src/, paridad ES/EN verificada, SSR OK (GET / 200), dev.log limpio. Registro completo en agent-ctx/16-b-subagent-data-i18n.md.
+- FUERA DE ALCANCE (candidatos a pasada futura): metadata/lang de layout.tsx, SUPPORTED_FORMATS_HINT (siglas técnicas), locale "es" de los localeCompare de ModelTable (lógica de ordenación, no cadena visible).
+
+---
+Task ID: 16-a
+Agent: subagent (tools i18n)
+Task: Convertir al i18n real ES/EN los 9 componentes de herramientas (PasteDialog, TokenVisualizer, OptimizerPanel, ChunkSplitter, CompareDialog, HistoryPanel, SettingsPanel, MonthlyCalculator, OutputTokensControl) rellenando dict-tools.ts.
+
+Work Log:
+- Leído el contexto: worklog (Tasks 13–15), lib/i18n/index.ts (API useT/tSync/currentLocale/useLocale/usePrecisionMeta), dict-core.ts y los ejemplos ya convertidos (Header, Hero, PrecisionBadge).
+- src/lib/i18n/dict-tools.ts rellenado de cero: 168 claves ES + 168 EN con prefijos por componente (paste. 9, viz. 13, opt. 19, chunk. 30, cmp. 21, history. 28, settings. 26, monthly. 20, output. 2). Verificado por script: paridad ES/EN exacta, sin duplicados, sin colisión con dict-core, y las 168 claves referenciadas desde los componentes (más 4 claves core reutilizadas: common.cancel, common.close, common.tokens, common.new).
+- 9 componentes convertidos con `const t = useT()` y sustitución de TODO texto visible (JSX, aria-label, placeholder, titles, toasts de sonner, labels, chips de contadores, notas de pie). Cero cambios de lógica, estilos, classNames o estructura; separadores {" "} explícitos donde el original tenía espacios frágiles.
+- Decisiones de traducción:
+  * Plurales con el patrón {plural} del orquestador: cmp.models / history.models / cmp.images usan "{n} modelo{plural}" ("s" en ambos idiomas) y "{n} imagen{plural}" (ES ""/"es", EN ""/"s", con useLang en SummaryCard); cmp.files siempre plural (condición > 1).
+  * Frases con elementos inline (badge/badge/insignia, <code>, spans mono): divididas en fragmentos a/b/c con orden válido en ES y EN (opt.desc.a/b, viz.truncated.a/b, settings.byok.security.a/b, monthly.pricesBody.a-d) preservando el espaciado y los estilos del original.
+  * Tiempos relativos (regla 8): Intl.RelativeTimeFormat("es") → currentLocale() en relativeTime de HistoryPanel y CompareDialog; el markdown copiado usa tSync (módulo no React) + currentLocale en toLocaleString; formatters con signo (signedFmt/signedPercentFmt) convertidos de const a función con currentLocale() para que los deltas usen separador del idioma activo.
+  * settings.byok.counter: "{ready} de {total} modelos activos recibirán conteo oficial." con interpolación (regla 7); "ventana {x}" → settings.models.window (regla 6); dots/labels de precisión vía usePrecisionMeta en SettingsPanel, HistoryPanel (HistoryRow) y CompareDialog (TokensCell), eliminando el import directo de PRECISION_META en los 3 archivos.
+  * Exportaciones del divisor: cabecera del .txt, sufijos de nombre de archivo (-fragmentos/-fragmento → -chunks/-chunk) y ZIP traducidos (chunk.file.*); arias de copia y toasts con {n} interpolado.
+  * Nombres visibles derivados: fileName fallback "texto" y sufijo "(optimizado)" del OptimizerPanel traducidos (opt.fallbackName / opt.optimizedNameSuffix).
+  * ES conserva «…» tipográficas (settings.currency.eurNote); EN usa comillas normales (regla 10). Glosario técnico respetado (tokens, context window, prompt, BYOK, API key, rate limit, chunk).
+  * TokenVisualizer: media car./token con useLocale() en toLocaleString (antes "es-ES" fijo) y título de chip interpolado viz.chipTitle con t en las deps del useMemo.
+- Limitación documentada: los títulos/descripciones de las sugerencias del optimizador provienen de lib/optimizer.ts (fuera de alcance, regla 1) y siguen en español; chunkFileBase (lib/chunker.ts) también devuelve "texto" como base de archivo. Pendiente para el orquestador si decide moverlas a tSync.
+- Verificación: `bun run lint` = 0 problemas; `bunx tsc --noEmit` = 0 errores en src/ (solo los 4 preexistentes de examples/ y skills/); dev.log sin errores nuevos (el EADDRINUSE de la línea 1 es previo a esta tarea; GET / 200 ×52 con compiles limpios); barridos rg de literales hardcodeados en los 9 archivos = vacíos; git status confirma que solo se tocaron los 9 componentes + dict-tools.ts.
+
+Stage Summary:
+- Entregado: i18n real ES/EN completo en las 9 herramientas. 168 claves nuevas × 2 idiomas en dict-tools.ts (336 entradas), 4 claves core reutilizadas, 0 colisiones, 0 claves huérfanas.
+- Resultado de verificación: lint 0/0, tsc 0 en src/, compilación y / 200 en dev server, paridad de diccionarios verificada por script.
+- Destacados de traducción: "Chunk splitter"/"Compute chunks", "Tokens up close", "Official counting (BYOK)", "Savings ≈", contador BYOK "{ready} of {total} active models will get an official count", markdown de comparación íntegramente localizable (tSync) y tiempos relativos "hace 1 minuto" → "1 minute ago" vía Intl reactivo.
+- Riesgos/pendientes: (1) sugerencias del optimizador en ES (lib/optimizer.ts fuera de alcance); (2) los archivos exportados por ChunkSplitter cambian de sufijo según idioma (-fragmentos.txt vs -chunks.txt) — decisión tomada por ser visible al usuario, reversible a identificador fijo si se prefiere; (3) QA visual en navegador pendiente del orquestador (Task 16) según protocolo.
+
+---
+Task ID: 16 (i18n real ES/EN — roadmap fase 3, prioridad 2)
+Agent: orchestrator (Z.ai Code) + subagentes 16-a/16-b/16-c (paralelos)
+Task: Revisión cron: QA base detectó que el toggle ES/EN era decorativo (toast "en camino") → implementar i18n real completo ES/EN en toda la app.
+
+Work Log:
+- QA base: carga OK, análisis OK, sin errores consola. Hallazgo: botón EN no hacía nada (issue real + prioridad 2 del roadmap).
+- Infraestructura nueva src/lib/i18n/: index.ts (store Zustand persistido "tokenlens-lang", useT() para componentes, tSync() para módulos no React, useLocale/usePrecisionMeta/useSampleText, interpolación {var}, fallback EN→ES→clave) + 4 diccionarios por dominio (dict-core/tools/data/content) para evitar conflictos entre agentes paralelos.
+- Orquestador: Header (toggle segmentado con icono Globe+Languages, píldora activa con sombra, <html lang> sincronizado por efecto), Hero, page.tsx, ByokStatus (incl. traducción de los 6 mensajes de error del proxy vía matcher), PrecisionBadge (usePrecisionMeta), format.ts (locale reactivo: coma decimal ES / punto EN, separadores de miles), sample.ts (SAMPLE_ES + SAMPLE_EN).
+- Subagente 16-a (168 claves ×2): PasteDialog, TokenVisualizer, OptimizerPanel, ChunkSplitter, CompareDialog, HistoryPanel, SettingsPanel (sección BYOK completa), MonthlyCalculator, OutputTokensControl. RelativeTimeFormat por locale; markdown de comparación vía tSync.
+- Subagente 16-b (137 claves ×2): Dropzone (useSampleText), FileStatsBar (media por locale), ResultCard (hints → claves), ImageTokensCard (fórmulas → img.formula.<id>.* en dict), CompareChart, ModelTable (COLUMNS con labelKey, tooltips precio), ExportMenu, imageTokens.ts (reducido a datos: ids + documented; firmas intactas), export.ts (tSync, CSV/MD con separador por idioma).
+- Subagente 16-c (42 claves ×2): HowItWorks (reutiliza precision.* de core), Faq (q1-q6/a1-a6 incl. BYOK), Footer, store.ts (7 cadenas: progreso, error, 3 rechazos).
+- Orquestador (cierre de cabos reportados): optimizer.ts (títulos/descripciones de 5 sugerencias → tSync con claves optimizer.*; DEFS reducidos a ids+riesgo), store.ts restante (fileLabel "{n} archivos", "desconocido", 3 errores de análisis, 2 labels "Extrayendo…", warning "Archivos omitidos", error extractMix/extractEmpty) → claves store.* en dict-core.
+- Total: ~390 claves × 2 idiomas (~780 entradas) en 4 diccionarios.
+
+QA (agent-browser):
+- ES: análisis completo, "Cabe"/"Resultados"/"Ventana de contexto"/FAQ OK, htmlLang=es, persistencia tras recarga OK.
+- EN (verificado superficie por superficie): hero, dropzone idle ("Drag your files here", "Paste text", "up to 10 files"), botones por aria-label ("Remove file"), resultados ("Fits", badges "Exact"/"Estimated"), tabla ("Model"/"Provider"/"Context window"), gráfico, HowItWorks, FAQ (BYOK "What is the official count (BYOK mode)?"), footer, historial, ajustes (Visible models/Currency/BYOK/security note), calculadora mensual, optimizador (sugerencias "Minify JSON"/"Collapse blank lines" en vivo). Cero "Cabe"/"Resultados" residual.
+- Formato numérico cambia por idioma: 3,4 → 3.4 chars/token ✓. Sample cambia: ES 341 tokens vs EN 319 tokens ✓ (textos distintos).
+- VLM en 3 capturas (results-en, settings-en, optimizer-en): sin restos de español, sin problemas visuales. 0 errores de consola, lint 0/0, tsc 0. Capturas: qa7-i18n-hero-en.png, qa7-i18n-results-en.png, qa7-i18n-settings-en.png, qa7-i18n-optimizer-en.png.
+
+Stage Summary — ENTREGA i18n ES/EN (FASE 3, PRIORIDAD 2 DEL ROADMAP)
+
+■ ESTADO ACTUAL DEL PROYECTO
+TokenLens completa fases 1-4 + catálogo oct-2026 + BYOK + i18n real ES/EN conmutables al vuelo desde la cabecera (persistido por navegador). La app entera (UI, diálogos, tabla, gráfico, exports, mensajes de error/progreso, formato numérico, sample de prueba) responde al idioma. Tercera prioridad del roadmap completada.
+
+■ OBJETIVOS, MODIFICACIONES Y VERIFICACIÓN
+- Objetivo: convertir el toggle decorativo en i18n real (fix de UX + feature), con el mandato de estilo (toggle segmentado con icono, píldora activa) y el patrón de 3 subagentes paralelos con diccionarios por dominio (cero conflictos de archivos).
+- Modificaciones: 1 carpeta nueva (lib/i18n: index + 4 dicts), 24 archivos convertidos (9 por 16-a, 9+2lib por 16-b, 4 por 16-c, 6 por el orquestador incl. format.ts/sample.ts/optimizer.ts/store.ts).
+- Verificación: QA bilingüe superficie por superficie (15+ checks EN), formato numérico, sample distinto por idioma, persistencia, aria-labels, VLM sin restos, lint 0/0, tsc 0, 0 errores consola.
+
+■ PROBLEMAS SIN RESOLVER, RIESGOS Y PRIORIDADES DE LA PRÓXIMA FASE
+- Restos menores documentados: metadata <title>/description de layout.tsx sigue solo en español (server-side estático); los mensajes de error del proxy /api/count llegan en español y se traducen en cliente por matcher de texto (frágil si cambia el wording del servidor — aceptado); SAMPLE de EN no ejercita acentos (ok, es intencional).
+- Precios: 27 modelos siguen null; EUR sin tipo de cambio (CURRENCIES.EUR.rate).
+- Prioridades siguientes: 1) tokenizadores HF locales vía transformers.js (🟢 Exacto para Llama/DeepSeek/Qwen/Mistral); 2) re-verificar precios desde páginas oficiales; 3) columna de latencia por modelo en la tabla; 4) limpieza opcional de claves duplicadas entre dominios (p. ej. footer.local vs hero.chip.local).
+- Riesgo menor mantenido: duplicación de módulos por HMR de Turbopack al editar stores — recargar la página tras cambios en desarrollo.

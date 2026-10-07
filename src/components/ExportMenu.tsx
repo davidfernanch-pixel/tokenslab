@@ -21,9 +21,14 @@ import {
 } from "@/lib/export";
 import { getModel } from "@/lib/models.config";
 import { calcCost, fitsContext } from "@/lib/cost";
+import { useT } from "@/lib/i18n";
 import { selectActiveResults, useTokenLens } from "@/lib/store";
 
 export function ExportMenu() {
+  const t = useT();
+  // valor estable (string) para el useMemo de abajo: `t` cambia en cada
+  // render y el compilador de React no podría preservar la memoización.
+  const defaultName = t("export.defaultSlug");
   const fileName = useTokenLens((s) => s.fileName);
   const fileSize = useTokenLens((s) => s.fileSize);
   const kind = useTokenLens((s) => s.kind);
@@ -54,7 +59,11 @@ export function ExportMenu() {
     );
     if (rows.length === 0) return null;
     return {
-      meta: { fileName: fileName ?? "resultados", fileSize: fileSize ?? 0, kind },
+      meta: {
+        fileName: fileName ?? defaultName,
+        fileSize: fileSize ?? 0,
+        kind,
+      },
       stats,
       currency,
       outputTokens,
@@ -69,14 +78,15 @@ export function ExportMenu() {
     fileName,
     fileSize,
     kind,
+    defaultName,
   ]);
 
   const slug =
-    (fileName ?? "resultados")
+    (fileName ?? t("export.defaultSlug"))
       .replace(/\.[^.]+$/, "")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "resultados";
+      .replace(/^-|-$/g, "") || t("export.defaultSlug");
 
   function exportCSV() {
     if (!payload) return;
@@ -91,50 +101,50 @@ export function ExportMenu() {
   async function exportMarkdown() {
     if (!payload) return;
     const ok = await copyToClipboard(toMarkdown(payload));
-    if (ok) toast.success("Markdown copiado al portapapeles");
-    else toast.error("No se pudo copiar");
+    if (ok) toast.success(t("export.toast.mdCopied"));
+    else toast.error(t("export.toast.copyFailed"));
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" aria-label="Exportar resultados">
+        <Button variant="outline" aria-label={t("export.aria")}>
           <Download className="h-4 w-4" />
-          <span className="hidden sm:inline">Exportar</span>
+          <span className="hidden sm:inline">{t("export.button")}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         {!payload ? (
           <>
             <DropdownMenuItem disabled className="text-xs text-muted-foreground">
-              Analiza algo primero
+              {t("export.empty")}
             </DropdownMenuItem>
             <DropdownMenuItem disabled>
               <FileSpreadsheet />
-              Descargar CSV
+              {t("export.csv")}
             </DropdownMenuItem>
             <DropdownMenuItem disabled>
               <FileJson />
-              Descargar JSON
+              {t("export.json")}
             </DropdownMenuItem>
             <DropdownMenuItem disabled>
               <ClipboardCopy />
-              Copiar como Markdown
+              {t("export.markdown")}
             </DropdownMenuItem>
           </>
         ) : (
           <>
             <DropdownMenuItem onSelect={exportCSV}>
               <FileSpreadsheet />
-              Descargar CSV
+              {t("export.csv")}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={exportJSON}>
               <FileJson />
-              Descargar JSON
+              {t("export.json")}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => void exportMarkdown()}>
               <ClipboardCopy />
-              Copiar como Markdown
+              {t("export.markdown")}
             </DropdownMenuItem>
           </>
         )}

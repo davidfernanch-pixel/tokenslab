@@ -29,23 +29,26 @@ import {
   type SuggestionId,
 } from "@/lib/optimizer";
 import { formatCompact, formatNumber, formatPercent } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { useTokenLens } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 /** Píldora de riesgo: verde = sin riesgo semántico, ámbar = revisar el resultado. */
 function RiskPill({ risk }: { risk: "safe" | "review" }) {
+  const t = useT();
   return risk === "safe" ? (
     <span className="rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
-      Seguro
+      {t("opt.riskSafe")}
     </span>
   ) : (
     <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning">
-      Revisar
+      {t("opt.riskReview")}
     </span>
   );
 }
 
 export function OptimizerPanel() {
+  const t = useT();
   const text = useTokenLens((s) => s.text);
   const status = useTokenLens((s) => s.status);
   const codeHint = useTokenLens((s) => s.codeHint);
@@ -104,8 +107,11 @@ export function OptimizerPanel() {
 
   function handleApply() {
     if (!optimized || !canApply) return;
-    void analyzeText(optimized, `${fileName ?? "texto"} (optimizado)`);
-    toast.success("Texto optimizado: analizando de nuevo…");
+    void analyzeText(
+      optimized,
+      `${fileName ?? t("opt.fallbackName")} ${t("opt.optimizedNameSuffix")}`,
+    );
+    toast.success(t("opt.toast.applied"));
     setOpen(false);
   }
 
@@ -122,17 +128,17 @@ export function OptimizerPanel() {
                 <Button
                   variant="outline"
                   disabled={disabled}
-                  aria-label="Optimizar texto"
+                  aria-label={t("opt.triggerAria")}
                 >
                   <WandSparkles className="h-4 w-4" />
-                  <span className="hidden sm:inline">Optimizar</span>
+                  <span className="hidden sm:inline">{t("opt.trigger")}</span>
                 </Button>
               </DialogTrigger>
             </span>
           </TooltipTrigger>
           {disabled && (
             <TooltipContent className="max-w-52 text-xs">
-              Analiza un archivo o texto primero
+              {t("opt.analyzeFirst")}
             </TooltipContent>
           )}
         </Tooltip>
@@ -140,12 +146,12 @@ export function OptimizerPanel() {
 
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Optimizador de tokens</DialogTitle>
+          <DialogTitle>{t("opt.title")}</DialogTitle>
           <DialogDescription className="leading-relaxed">
-            Reducciones que no cambian el significado del texto. El ahorro en
-            tokens es estimado{" "}
-            <PrecisionBadge precision="estimated" size="sm" /> y se recalcula
-            exacto al volver a analizar.
+            {t("opt.desc.a")}{" "}
+            <PrecisionBadge precision="estimated" size="sm" />
+            {" "}
+            {t("opt.desc.b")}
           </DialogDescription>
         </DialogHeader>
 
@@ -180,7 +186,7 @@ export function OptimizerPanel() {
                     {s.applicable ? (
                       <>
                         <span className="font-mono text-xs text-success">
-                          +{formatNumber(s.charsSaved)} car.
+                          +{formatNumber(s.charsSaved)} {t("opt.charsUnit")}
                         </span>
                         <span className="font-mono text-xs text-muted-foreground">
                           {formatPercent(s.percent)}
@@ -200,7 +206,7 @@ export function OptimizerPanel() {
             <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-surface-elevated/30 px-6 py-10 text-center">
               <CircleCheck className="h-5 w-5 text-success" aria-hidden />
               <p className="text-sm text-muted-foreground">
-                Tu texto ya está compacto: no hay optimizaciones evidentes.
+                {t("opt.allClear")}
               </p>
             </div>
           ))}
@@ -210,11 +216,13 @@ export function OptimizerPanel() {
           aria-live="polite"
         >
           {!hasApplicable || nothingSelected || optimized == null || savings == null ? (
-            <p className="text-xs text-muted-foreground">Nada seleccionado</p>
+            <p className="text-xs text-muted-foreground">
+              {t("opt.nothingSelected")}
+            </p>
           ) : (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-xs tabular-nums">
               <span className="text-muted-foreground">
-                Texto:{" "}
+                {t("opt.summary.text")}{" "}
                 <span className="font-medium text-foreground">
                   {formatCompact(text.length)}
                 </span>{" "}
@@ -222,14 +230,14 @@ export function OptimizerPanel() {
                 <span className="font-medium text-foreground">
                   {formatCompact(optimized.length)}
                 </span>{" "}
-                caracteres
+                {t("opt.summary.chars")}
               </span>
               <span className="text-muted-foreground">
-                Ahorro ≈{" "}
+                {t("opt.summary.savings")}{" "}
                 <span className="font-medium text-success">
                   {formatNumber(savings.tokensSaved)}
                 </span>{" "}
-                tokens (−{formatPercent(savings.percent)})
+                {t("common.tokens")} (−{formatPercent(savings.percent)})
               </span>
               <PrecisionBadge precision="estimated" size="sm" />
             </div>
@@ -238,16 +246,15 @@ export function OptimizerPanel() {
 
         <DialogFooter className="gap-3 sm:justify-between">
           <p className="text-xs text-muted-foreground">
-            El texto optimizado se analiza como texto pegado; se guarda en tu
-            historial local.
+            {t("opt.footerNote")}
           </p>
           <div className="flex flex-col-reverse gap-2 sm:flex-row">
             <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+              {t("common.cancel")}
             </Button>
             <Button onClick={handleApply} disabled={!canApply}>
               <RefreshCw className="h-4 w-4" />
-              Aplicar y volver a analizar
+              {t("opt.apply")}
             </Button>
           </div>
         </DialogFooter>

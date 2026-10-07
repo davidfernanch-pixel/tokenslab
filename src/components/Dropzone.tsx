@@ -21,7 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import { PasteDialog } from "@/components/PasteDialog";
 import { useTokenLens } from "@/lib/store";
 import { ACCEPT_ATTRIBUTE, SUPPORTED_FORMATS_HINT } from "@/lib/extractors";
-import { SAMPLE_TEXT } from "@/lib/sample";
+import { useSampleText, useT } from "@/lib/i18n";
 import { MAX_FILES } from "@/lib/types";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,8 @@ import { cn } from "@/lib/utils";
 type PickerMode = "replace" | "add";
 
 export function Dropzone() {
+  const t = useT();
+  const sampleText = useSampleText();
   const status = useTokenLens((s) => s.status);
   const error = useTokenLens((s) => s.error);
   const warning = useTokenLens((s) => s.warning);
@@ -66,7 +68,7 @@ export function Dropzone() {
       <div
         role="button"
         tabIndex={0}
-        aria-label="Subir archivos para analizar sus tokens"
+        aria-label={t("drop.zone.aria")}
         onClick={() => openPicker(zonePickerMode)}
         onKeyDown={(e) => {
           // Solo cuando el foco está en la propia zona (no en botones internos).
@@ -136,7 +138,7 @@ export function Dropzone() {
             >
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="mt-4 text-sm font-medium">
-                {progress?.label ?? "Procesando…"}
+                {progress?.label ?? t("drop.busy.fallback")}
               </p>
               <Progress
                 value={progress?.percent ?? 0}
@@ -167,13 +169,18 @@ export function Dropzone() {
                   {isMulti ? (
                     <>
                       <p className="text-sm font-medium">
-                        {files.length} archivos
+                        {t("drop.done.files", { n: files.length })}
                       </p>
                       <p className="font-mono text-xs tabular-nums text-muted-foreground">
                         {fileSize != null ? formatBytes(fileSize) : ""}
-                        {" · análisis completado"}
+                        {t("drop.done.completed")}
                         {imageCount > 0
-                          ? ` · ${imageCount} ${imageCount === 1 ? "imagen" : "imágenes"}`
+                          ? ` · ${t(
+                              imageCount === 1
+                                ? "drop.done.image"
+                                : "drop.done.images",
+                              { n: imageCount },
+                            )}`
                           : ""}
                       </p>
                     </>
@@ -182,7 +189,7 @@ export function Dropzone() {
                       <p className="truncate text-sm font-medium">{fileName}</p>
                       <p className="font-mono text-xs tabular-nums text-muted-foreground">
                         {fileSize != null ? formatBytes(fileSize) : ""}
-                        {status === "done" ? " · análisis completado" : ""}
+                        {status === "done" ? t("drop.done.completed") : ""}
                       </p>
                     </>
                   )}
@@ -199,7 +206,7 @@ export function Dropzone() {
                     }}
                   >
                     <FilePlus2 className="h-4 w-4" />
-                    Añadir más
+                    {t("drop.button.addMore")}
                   </Button>
                 ) : (
                   <Button
@@ -211,7 +218,7 @@ export function Dropzone() {
                     }}
                   >
                     <RefreshCw className="h-4 w-4" />
-                    Cambiar archivo
+                    {t("drop.button.changeFile")}
                   </Button>
                 )}
                 <Button
@@ -219,7 +226,9 @@ export function Dropzone() {
                   size="icon"
                   className="h-10 w-10"
                   aria-label={
-                    isMulti ? "Quitar todos los archivos" : "Quitar archivo"
+                    isMulti
+                      ? t("drop.button.removeAll")
+                      : t("drop.button.remove")
                   }
                   onClick={(e) => {
                     e.stopPropagation();
@@ -250,13 +259,13 @@ export function Dropzone() {
                 <FileUp className="h-6 w-6 text-white" />
               </div>
               <h2 className="mt-5 text-xl font-semibold sm:text-2xl">
-                Arrastra tus archivos aquí
+                {t("drop.title")}
               </h2>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                o haz clic para seleccionarlos
+                {t("drop.subtitle")}
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Puedes analizar hasta {MAX_FILES} archivos a la vez
+                {t("drop.maxFiles", { n: MAX_FILES })}
               </p>
               <div className="mt-4 flex max-w-md flex-wrap items-center justify-center gap-1.5">
                 {SUPPORTED_FORMATS_HINT.split(" · ").map((format) => (
@@ -275,17 +284,17 @@ export function Dropzone() {
                   className="text-muted-foreground hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation();
-                    void analyzeText(SAMPLE_TEXT, "ejemplo.md");
+                    void analyzeText(sampleText, t("drop.sample.file"));
                   }}
                   onKeyDown={(e) => e.stopPropagation()}
                 >
                   <Sparkles className="h-4 w-4" />
-                  Probar con un ejemplo
+                  {t("drop.sample")}
                 </Button>
               </div>
               <p className="mt-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Lock className="h-3.5 w-3.5 text-success" />
-                Tu archivo se procesa en local: nunca sale de tu navegador
+                {t("drop.privacy")}
               </p>
             </motion.div>
           )}
@@ -295,7 +304,7 @@ export function Dropzone() {
       {error && (
         <Alert variant="destructive" className="mt-4">
           <AlertTriangle />
-          <AlertTitle>No se pudo analizar</AlertTitle>
+          <AlertTitle>{t("drop.error.title")}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -303,7 +312,7 @@ export function Dropzone() {
       {!error && warning && (
         <Alert className="mt-4 border-warning/40 bg-warning/5 text-foreground">
           <AlertTriangle className="h-4 w-4 text-warning!" />
-          <AlertTitle>Aviso</AlertTitle>
+          <AlertTitle>{t("drop.warning.title")}</AlertTitle>
           <AlertDescription>{warning}</AlertDescription>
         </Alert>
       )}

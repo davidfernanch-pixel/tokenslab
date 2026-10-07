@@ -1,7 +1,7 @@
 "use client";
 
 import type { Precision } from "@/lib/models.config";
-import { PRECISION_META } from "@/lib/types";
+import { usePrecisionMeta } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -24,7 +24,8 @@ export function PrecisionBadge({
   precision: "exact" | "official" | "estimated";
   size?: "sm" | "md";
 }) {
-  const meta = PRECISION_META[precision];
+  const META = usePrecisionMeta();
+  const meta = META[precision];
 
   return (
     <TooltipProvider>

@@ -50,21 +50,22 @@ import {
   type HistoryEntry,
 } from "@/lib/history";
 import { formatBytes, formatCompact, formatNumber } from "@/lib/format";
+import { currentLocale, usePrecisionMeta, useT } from "@/lib/i18n";
 import { getModel } from "@/lib/models.config";
-import { PRECISION_META } from "@/lib/types";
 import { useTokenLens } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-const relativeFmt = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
-
-/** Tiempo relativo en minutos/horas/días frente a `now`. */
+/** Tiempo relativo en minutos/horas/días frente a `now` (idioma activo). */
 function relativeTime(ts: number, now: number): string {
+  const fmt = new Intl.RelativeTimeFormat(currentLocale(), {
+    numeric: "auto",
+  });
   const diff = ts - now;
   const minutes = Math.round(diff / 60_000);
-  if (Math.abs(minutes) < 60) return relativeFmt.format(minutes, "minute");
+  if (Math.abs(minutes) < 60) return fmt.format(minutes, "minute");
   const hours = Math.round(diff / 3_600_000);
-  if (Math.abs(hours) < 24) return relativeFmt.format(hours, "hour");
-  return relativeFmt.format(Math.round(diff / 86_400_000), "day");
+  if (Math.abs(hours) < 24) return fmt.format(hours, "hour");
+  return fmt.format(Math.round(diff / 86_400_000), "day");
 }
 
 const MAX_VISIBLE_RESULTS = 9;
@@ -88,6 +89,8 @@ function HistoryRow({
   onRestore: () => void;
   onDelete: () => void;
 }) {
+  const t = useT();
+  const META = usePrecisionMeta();
   const visibleResults = entry.results.slice(0, MAX_VISIBLE_RESULTS);
   const hiddenCount = entry.results.length - visibleResults.length;
 
@@ -112,7 +115,9 @@ function HistoryRow({
               onClick={onToggle}
               aria-expanded={expanded}
               aria-label={
-                expanded ? "Ocultar resultados" : "Ver resultados por modelo"
+                expanded
+                  ? t("history.row.hideAria")
+                  : t("history.row.showAria")
               }
               className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-elevated hover:text-foreground"
             >
@@ -135,10 +140,13 @@ function HistoryRow({
               <span className="font-mono tabular-nums">
                 {formatCompact(entry.chars)}
               </span>{" "}
-              caracteres
+              {t("history.chars")}
             </span>
             <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-[10px] tabular-nums">
-              {entry.results.length} modelos
+              {t("history.models", {
+                n: entry.results.length,
+                plural: entry.results.length === 1 ? "" : "s",
+              })}
             </span>
           </p>
         </div>
@@ -156,11 +164,13 @@ function HistoryRow({
             )}
             onClick={onToggleCompare}
             aria-pressed={compareSelected}
-            aria-label={`Seleccionar ${entry.name} para comparar`}
+            aria-label={t("history.compare.selectAria", {
+              name: entry.name,
+            })}
             title={
               compareSelected
-                ? "Quitar de la comparación"
-                : "Seleccionar para comparar"
+                ? t("history.compare.remove")
+                : t("history.compare.select")
             }
           >
             <GitCompareArrows className="h-3.5 w-3.5" />
@@ -172,7 +182,7 @@ function HistoryRow({
               size="icon"
               className="h-8 w-8"
               onClick={onRestore}
-              aria-label="Restaurar análisis"
+              aria-label={t("history.restoreAria")}
             >
               <RotateCcw className="h-3.5 w-3.5" />
             </Button>
@@ -188,15 +198,16 @@ function HistoryRow({
                       size="icon"
                       className="h-8 w-8"
                       disabled
-                      aria-label="Restaurar análisis"
+                      aria-label={t("history.restoreAria")}
                     >
                       <RotateCcw className="h-3.5 w-3.5" />
                     </Button>
                   </span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-52">
-                  El texto era demasiado grande para guardarse (&gt;{" "}
-                  {MAX_STORED_TEXT / 1024} KB)
+                  {t("history.tooLarge", {
+                    kb: MAX_STORED_TEXT / 1024,
+                  })}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -207,7 +218,7 @@ function HistoryRow({
             size="icon"
             className="h-8 w-8 text-destructive hover:text-destructive"
             onClick={onDelete}
-            aria-label="Eliminar del historial"
+            aria-label={t("history.deleteAria")}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
@@ -227,9 +238,9 @@ function HistoryRow({
                   <span
                     className={cn(
                       "h-1.5 w-1.5 shrink-0 rounded-full",
-                      PRECISION_META[r.precision].dotClass,
+                      META[r.precision].dotClass,
                     )}
-                    aria-label={PRECISION_META[r.precision].label}
+                    aria-label={META[r.precision].label}
                   />
                   <span className="truncate text-[10px] text-muted-foreground">
                     {model?.name ?? r.modelId}
@@ -243,7 +254,7 @@ function HistoryRow({
           })}
           {hiddenCount > 0 && (
             <div className="flex items-center justify-center rounded-lg border border-dashed px-2 py-1.5 text-[10px] text-muted-foreground">
-              +{hiddenCount} más
+              {t("history.more", { n: hiddenCount })}
             </div>
           )}
         </div>
@@ -253,6 +264,7 @@ function HistoryRow({
 }
 
 export function HistoryPanel() {
+  const t = useT();
   const analyzeText = useTokenLens((s) => s.analyzeText);
 
   const [open, setOpen] = useState(false);
@@ -285,7 +297,7 @@ export function HistoryPanel() {
     const isSelected = selected.includes(id);
     // Un tercer análisis reemplaza al más antiguo: siempre quedan los 2 últimos
     if (!isSelected && selected.length >= 2) {
-      toast.info("Selección actualizada: se comparan los dos últimos análisis");
+      toast.info(t("history.compare.rotatedToast"));
     }
     setSelected((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
@@ -301,7 +313,7 @@ export function HistoryPanel() {
   function handleRestore(entry: HistoryEntry) {
     if (!entry.text) return;
     void analyzeText(entry.text, entry.name);
-    toast.success("Análisis restaurado");
+    toast.success(t("history.toast.restored"));
     setOpen(false);
   }
 
@@ -315,7 +327,7 @@ export function HistoryPanel() {
     setEntries(clearHistory());
     setExpandedId(null);
     setSelected([]);
-    toast.success("Historial vaciado");
+    toast.success(t("history.toast.cleared"));
   }
 
   const now = Date.now();
@@ -324,19 +336,16 @@ export function HistoryPanel() {
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          <Button variant="outline" aria-label="Ver historial local">
+          <Button variant="outline" aria-label={t("history.triggerAria")}>
             <History className="h-4 w-4" />
-            <span className="hidden sm:inline">Historial</span>
+            <span className="hidden sm:inline">{t("history.trigger")}</span>
           </Button>
         </DialogTrigger>
   
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Historial local</DialogTitle>
-            <DialogDescription>
-              Tus últimos análisis, guardados solo en tu navegador. Nunca se
-              envían a ningún servidor.
-            </DialogDescription>
+            <DialogTitle>{t("history.title")}</DialogTitle>
+            <DialogDescription>{t("history.desc")}</DialogDescription>
           </DialogHeader>
   
           {entries.length === 0 ? (
@@ -345,8 +354,7 @@ export function HistoryPanel() {
                 <FolderOpen className="h-6 w-6" />
               </div>
               <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-                Aún no hay análisis guardados. Analiza un archivo o texto y
-                aparecerá aquí.
+                {t("history.empty")}
               </p>
             </div>
           ) : (
@@ -390,7 +398,7 @@ export function HistoryPanel() {
                   </span>
                 ) : (
                   <span className="truncate">
-                    Selecciona 2 análisis para comparar
+                    {t("history.compare.hint")}
                   </span>
                 )}
               </p>
@@ -402,7 +410,7 @@ export function HistoryPanel() {
                   className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                   onClick={clearSelection}
                 >
-                  Limpiar
+                  {t("history.compare.clear")}
                 </Button>
                 {compareCount === 2 ? (
                   <Button
@@ -410,11 +418,11 @@ export function HistoryPanel() {
                     size="sm"
                     onClick={() => setCompareOpen(true)}
                   >
-                    Comparar (2)
+                    {t("history.compare.go")}
                   </Button>
                 ) : (
                   <Button type="button" variant="outline" size="sm" disabled>
-                    Comparar ({compareCount}/2)
+                    {t("history.compare.compareN", { n: compareCount })}
                   </Button>
                 )}
               </div>
@@ -423,8 +431,10 @@ export function HistoryPanel() {
   
           <DialogFooter className="items-center gap-3 sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              Máximo {MAX_HISTORY} análisis · Se guarda el texto solo si pesa
-              menos de {MAX_STORED_TEXT / 1024} KB · Compara dos análisis
+              {t("history.footerNote", {
+                max: MAX_HISTORY,
+                kb: MAX_STORED_TEXT / 1024,
+              })}
             </p>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -435,23 +445,25 @@ export function HistoryPanel() {
                   className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Vaciar historial
+                  {t("history.clear")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>¿Vaciar el historial?</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    {t("history.clearConfirmTitle")}
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta acción no se puede deshacer.
+                    {t("history.clearConfirmDesc")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleClear}
                     className="bg-destructive text-white shadow-xs hover:bg-destructive/90"
                   >
-                    Vaciar
+                    {t("history.clearConfirmAction")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

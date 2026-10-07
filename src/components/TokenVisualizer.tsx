@@ -22,6 +22,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatMs, formatNumber } from "@/lib/format";
+import { useLocale, useT } from "@/lib/i18n";
 import { useTokenLens } from "@/lib/store";
 import { tokenizerClient } from "@/lib/tokenizers/client";
 import type { SegmentsResult } from "@/lib/tokenizers/segments";
@@ -55,6 +56,8 @@ interface TokenChip {
 }
 
 export function TokenVisualizer() {
+  const t = useT();
+  const locale = useLocale();
   const text = useTokenLens((s) => s.text);
   const status = useTokenLens((s) => s.status);
 
@@ -104,12 +107,15 @@ export function TokenVisualizer() {
     if (!result) return [];
     return result.segments.map((segment, i) => ({
       key: `${segment.start}-${i}`,
-      title: `token ${segment.id} · ${segment.text.length} car.`,
+      title: t("viz.chipTitle", {
+        id: segment.id,
+        n: segment.text.length,
+      }),
       display: showWhitespace(segment.text),
       className: CHIP_PALETTE[i % CHIP_PALETTE.length],
       whitespaceOnly: /^\s+$/.test(segment.text),
     }));
-  }, [result]);
+  }, [result, t]);
 
   /** Media de caracteres por token de los segmentos mostrados (1 decimal). */
   const avgCharsLabel = useMemo(() => {
@@ -117,11 +123,11 @@ export function TokenVisualizer() {
     const chars = result.segments.reduce((acc, s) => acc + s.text.length, 0);
     const tokens = result.segments.reduce((acc, s) => acc + s.tokens, 0);
     if (tokens <= 0) return "—";
-    return (chars / tokens).toLocaleString("es-ES", {
+    return (chars / tokens).toLocaleString(locale, {
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
     });
-  }, [result]);
+  }, [result, locale]);
 
   const disabled = status !== "done";
 
@@ -136,17 +142,17 @@ export function TokenVisualizer() {
                 <Button
                   variant="outline"
                   disabled={disabled}
-                  aria-label="Visualizar tokens"
+                  aria-label={t("viz.trigger")}
                 >
                   <Eye className="h-4 w-4" />
-                  <span className="hidden sm:inline">Visualizar tokens</span>
+                  <span className="hidden sm:inline">{t("viz.trigger")}</span>
                 </Button>
               </DialogTrigger>
             </span>
           </TooltipTrigger>
           {disabled && (
             <TooltipContent className="max-w-52 text-xs">
-              Analiza un archivo o texto primero
+              {t("viz.analyzeFirst")}
             </TooltipContent>
           )}
         </Tooltip>
@@ -154,23 +160,22 @@ export function TokenVisualizer() {
 
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Tokens al detalle</DialogTitle>
-          <DialogDescription>
-            Cada color es un token distinto (tokenizador o200k_base de OpenAI,
-            exacto en tu navegador).
-          </DialogDescription>
+          <DialogTitle>{t("viz.title")}</DialogTitle>
+          <DialogDescription>{t("viz.desc")}</DialogDescription>
         </DialogHeader>
 
         {!result && !failed && (
           <div className="space-y-2" aria-live="polite">
-            <Progress value={percent} aria-label="Progreso de tokenización" />
-            <p className="text-xs text-muted-foreground">Tokenizando…</p>
+            <Progress value={percent} aria-label={t("viz.progressAria")} />
+            <p className="text-xs text-muted-foreground">
+              {t("viz.tokenizing")}
+            </p>
           </div>
         )}
 
         {failed && (
           <Alert variant="destructive">
-            <AlertTitle>No se pudo tokenizar la vista previa.</AlertTitle>
+            <AlertTitle>{t("viz.failed")}</AlertTitle>
           </Alert>
         )}
 
@@ -181,13 +186,13 @@ export function TokenVisualizer() {
                 <span className="font-mono text-base font-semibold tabular-nums text-foreground">
                   {formatNumber(result.totalTokens)}
                 </span>{" "}
-                tokens
+                {t("common.tokens")}
               </span>
               <span>
                 <span className="font-mono font-medium tabular-nums text-foreground">
                   {avgCharsLabel}
                 </span>{" "}
-                car./token de media
+                {t("viz.avgChars")}
               </span>
               <span className="font-mono font-medium tabular-nums text-foreground">
                 {formatMs(result.ms)}
@@ -196,8 +201,7 @@ export function TokenVisualizer() {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Los espacios y saltos se muestran como · y ⏎ — también cuentan
-              como tokens.
+              {t("viz.whitespaceNote")}
             </p>
 
             {result.truncated && (
@@ -205,11 +209,11 @@ export function TokenVisualizer() {
                 className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning"
                 role="note"
               >
-                Vista limitada a los primeros{" "}
+                {t("viz.truncated.a")}{" "}
                 <span className="font-mono tabular-nums">
                   {formatNumber(PREVIEW_TOKENS)}
                 </span>{" "}
-                tokens (el análisis completo tiene{" "}
+                {t("viz.truncated.b")}{" "}
                 <span className="font-mono tabular-nums">
                   {formatNumber(result.totalTokens)}
                 </span>
@@ -219,7 +223,7 @@ export function TokenVisualizer() {
 
             <div
               role="group"
-              aria-label="Vista de tokens"
+              aria-label={t("viz.groupAria")}
               className="custom-scrollbar max-h-[55vh] overflow-y-auto rounded-lg border border-border bg-surface-elevated/50 p-4"
             >
               {chips.map((chip) => (

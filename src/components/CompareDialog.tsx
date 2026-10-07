@@ -15,6 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { copyToClipboard } from "@/lib/export";
 import { formatBytes, formatNumber } from "@/lib/format";
+import {
+  currentLocale,
+  tSync,
+  useLang,
+  usePrecisionMeta,
+  useT,
+} from "@/lib/i18n";
 import type { HistoryEntry, HistoryResult } from "@/lib/history";
 import {
   getModel,
@@ -22,28 +29,32 @@ import {
   PROVIDERS,
   type ModelConfig,
 } from "@/lib/models.config";
-import { PRECISION_META } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const relativeFmt = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
 
 /** Tiempo relativo en minutos/horas/días frente a `now` (mismo helper que HistoryPanel). */
 function relativeTime(ts: number, now: number): string {
+  const fmt = new Intl.RelativeTimeFormat(currentLocale(), {
+    numeric: "auto",
+  });
   const diff = ts - now;
   const minutes = Math.round(diff / 60_000);
-  if (Math.abs(minutes) < 60) return relativeFmt.format(minutes, "minute");
+  if (Math.abs(minutes) < 60) return fmt.format(minutes, "minute");
   const hours = Math.round(diff / 3_600_000);
-  if (Math.abs(hours) < 24) return relativeFmt.format(hours, "hour");
-  return relativeFmt.format(Math.round(diff / 86_400_000), "day");
+  if (Math.abs(hours) < 24) return fmt.format(hours, "hour");
+  return fmt.format(Math.round(diff / 86_400_000), "day");
 }
 
-/** Diferencia con signo explícito: +1.234 / -1.234 */
-const signedFmt = new Intl.NumberFormat("es-ES", { signDisplay: "always" });
+/** Diferencia con signo explícito: +1.234 / -1.234 (separadores según idioma). */
+function signedFmt(): Intl.NumberFormat {
+  return new Intl.NumberFormat(currentLocale(), { signDisplay: "always" });
+}
 /** Porcentaje con signo y 1 decimal (estilo formatPercent): +12,5 */
-const signedPercentFmt = new Intl.NumberFormat("es-ES", {
-  signDisplay: "always",
-  maximumFractionDigits: 1,
-});
+function signedPercentFmt(): Intl.NumberFormat {
+  return new Intl.NumberFormat(currentLocale(), {
+    signDisplay: "always",
+    maximumFractionDigits: 1,
+  });
+}
 
 interface CompareRow {
   modelId: string;
@@ -73,6 +84,8 @@ function SummaryCard({
   entry: HistoryEntry;
   now: number;
 }) {
+  const t = useT();
+  const lang = useLang((s) => s.lang);
   return (
     <div className="min-w-0 rounded-xl border bg-card p-3">
       <div className="flex items-center gap-2">
@@ -97,22 +110,29 @@ function SummaryCard({
           <span className="font-mono tabular-nums">
             {formatNumber(entry.chars)}
           </span>{" "}
-          caracteres
+          {t("cmp.chars")}
         </span>
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-1">
         {entry.fileCount != null && entry.fileCount > 1 && (
           <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-[10px] tabular-nums">
-            {entry.fileCount} archivos
+            {t("cmp.files", { n: entry.fileCount })}
           </span>
         )}
         {entry.imageCount != null && entry.imageCount > 0 && (
           <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-[10px] tabular-nums">
-            {entry.imageCount} imágenes
+            {t("cmp.images", {
+              n: entry.imageCount,
+              plural:
+                entry.imageCount === 1 ? "" : lang === "es" ? "es" : "s",
+            })}
           </span>
         )}
         <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-[10px] tabular-nums">
-          {entry.results.length} modelos
+          {t("cmp.models", {
+            n: entry.results.length,
+            plural: entry.results.length === 1 ? "" : "s",
+          })}
         </span>
       </div>
     </div>
@@ -121,8 +141,10 @@ function SummaryCard({
 
 /** Celda de tokens: dot de precisión, cifra y desglose texto/imagen si lo hay. */
 function TokensCell({ result }: { result: HistoryResult | undefined }) {
+  const t = useT();
+  const META = usePrecisionMeta();
   if (!result) return <span className="text-muted-foreground">—</span>;
-  const meta = PRECISION_META[result.precision];
+  const meta = META[result.precision];
   return (
     <span className="flex flex-col items-end">
       <span className="inline-flex items-center gap-1.5 font-mono text-xs tabular-nums">
@@ -135,9 +157,12 @@ function TokensCell({ result }: { result: HistoryResult | undefined }) {
       </span>
       {result.imageTokens != null && (
         <span className="mt-0.5 font-mono text-[10px] tabular-nums text-muted-foreground">
-          {`texto ${formatNumber(
-            result.textTokens ?? result.tokens - result.imageTokens,
-          )} + img ${formatNumber(result.imageTokens)}`}
+          {t("cmp.breakdown", {
+            text: formatNumber(
+              result.textTokens ?? result.tokens - result.imageTokens,
+            ),
+            img: formatNumber(result.imageTokens),
+          })}
         </span>
       )}
     </span>
@@ -151,14 +176,14 @@ function buildComparisonMarkdown(
   rows: CompareRow[],
 ): string {
   const meta = (e: HistoryEntry) =>
-    `${new Date(e.ts).toLocaleString("es-ES")} · ${formatBytes(e.size)} · ${formatNumber(e.chars)} caracteres`;
+    `${new Date(e.ts).toLocaleString(currentLocale())} · ${formatBytes(e.size)} · ${formatNumber(e.chars)} ${tSync("cmp.chars")}`;
   const lines: string[] = [
-    "# TokenLens — Comparación de análisis",
+    tSync("cmp.md.title"),
     "",
-    `- **Análisis A:** ${entryA.name} (${meta(entryA)})`,
-    `- **Análisis B:** ${entryB.name} (${meta(entryB)})`,
+    tSync("cmp.md.entryA", { name: entryA.name, meta: meta(entryA) }),
+    tSync("cmp.md.entryB", { name: entryB.name, meta: meta(entryB) }),
     "",
-    "| Modelo | Tokens A | Tokens B | Diferencia | Cambio |",
+    tSync("cmp.md.header"),
     "| --- | ---: | ---: | ---: | ---: |",
   ];
   for (const row of rows) {
@@ -170,19 +195,17 @@ function buildComparisonMarkdown(
         ? "—"
         : row.diff === 0
           ? "0"
-          : signedFmt.format(row.diff);
+          : signedFmt().format(row.diff);
     const change =
       row.change == null
         ? "—"
         : row.change === 0
           ? "0 %"
-          : `${signedPercentFmt.format(row.change)} %`;
+          : `${signedPercentFmt().format(row.change)} %`;
     lines.push(`| ${name} | ${a} | ${b} | ${diff} | ${change} |`);
   }
   lines.push("");
-  lines.push(
-    "> Diferencia = tokens B − tokens A. Generado con TokenLens — procesamiento 100 % local.",
-  );
+  lines.push(tSync("cmp.md.footer"));
   return lines.join("\n");
 }
 
@@ -200,6 +223,7 @@ export function CompareDialog({
   entryA: HistoryEntry | null;
   entryB: HistoryEntry | null;
 }) {
+  const t = useT();
   // Unión de modelos de ambos análisis, ordenada como aparecen en MODELS
   // (ids desconocidos —p. ej. de configs antiguas— al final).
   const rows = useMemo<CompareRow[]>(() => {
@@ -241,19 +265,16 @@ export function CompareDialog({
     const ok = await copyToClipboard(
       buildComparisonMarkdown(entryA, entryB, rows),
     );
-    if (ok) toast.success("Comparación copiada al portapapeles");
-    else toast.error("No se pudo copiar la comparación");
+    if (ok) toast.success(t("cmp.toast.copied"));
+    else toast.error(t("cmp.toast.copyFailed"));
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Comparar análisis</DialogTitle>
-          <DialogDescription>
-            Diferencia de tokens por modelo entre los dos análisis
-            seleccionados.
-          </DialogDescription>
+          <DialogTitle>{t("cmp.title")}</DialogTitle>
+          <DialogDescription>{t("cmp.desc")}</DialogDescription>
         </DialogHeader>
 
         {/* Resumen: tarjeta A · vs · tarjeta B (apiladas en pantallas muy pequeñas) */}
@@ -272,7 +293,7 @@ export function CompareDialog({
 
         {rows.length === 0 ? (
           <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
-            Estos análisis no tienen resultados por modelo.
+            {t("cmp.empty")}
           </p>
         ) : (
           /* Tabla cruda (sin la primitiva ui/table): su wrapper con
@@ -282,7 +303,7 @@ export function CompareDialog({
               <thead>
                 <tr>
                   <th scope="col" className={cn(thClass, "px-3 text-left")}>
-                    Modelo
+                    {t("cmp.col.model")}
                   </th>
                   <th
                     scope="col"
@@ -291,7 +312,7 @@ export function CompareDialog({
                       "px-2 text-right whitespace-nowrap sm:px-3",
                     )}
                   >
-                    Tokens A
+                    {t("cmp.col.tokensA")}
                   </th>
                   <th
                     scope="col"
@@ -300,7 +321,7 @@ export function CompareDialog({
                       "px-2 text-right whitespace-nowrap sm:px-3",
                     )}
                   >
-                    Tokens B
+                    {t("cmp.col.tokensB")}
                   </th>
                   <th
                     scope="col"
@@ -309,7 +330,7 @@ export function CompareDialog({
                       "px-2 text-right whitespace-nowrap sm:px-3",
                     )}
                   >
-                    Diferencia
+                    {t("cmp.col.diff")}
                   </th>
                   <th
                     scope="col"
@@ -318,7 +339,7 @@ export function CompareDialog({
                       "hidden px-3 text-right whitespace-nowrap sm:table-cell",
                     )}
                   >
-                    Cambio
+                    {t("cmp.col.change")}
                   </th>
                 </tr>
               </thead>
@@ -361,7 +382,7 @@ export function CompareDialog({
                         <span className={diffTone(row.diff)}>
                           {row.diff === 0
                             ? formatNumber(0)
-                            : signedFmt.format(row.diff)}
+                            : signedFmt().format(row.diff)}
                         </span>
                       )}
                     </td>
@@ -372,7 +393,7 @@ export function CompareDialog({
                         <span className={diffTone(row.change)}>
                           {row.change === 0
                             ? "0 %"
-                            : `${signedPercentFmt.format(row.change)} %`}
+                            : `${signedPercentFmt().format(row.change)} %`}
                         </span>
                       )}
                     </td>
@@ -386,14 +407,14 @@ export function CompareDialog({
         <DialogFooter>
           <Button type="button" variant="outline" onClick={handleCopy}>
             <Copy className="h-4 w-4" />
-            Copiar comparación
+            {t("cmp.copy")}
           </Button>
           <Button
             type="button"
             variant="secondary"
             onClick={() => onOpenChange(false)}
           >
-            Cerrar
+            {t("common.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

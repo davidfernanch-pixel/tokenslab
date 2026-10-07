@@ -5,11 +5,13 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useTokenLens } from "@/lib/store";
 import { formatCompact, formatNumber } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const PRESETS = [0, 256, 1024, 4096, 16384] as const;
 
 export function OutputTokensControl() {
+  const t = useT();
   const outputTokens = useTokenLens((s) => s.outputTokens);
   const setOutputTokens = useTokenLens((s) => s.setOutputTokens);
 
@@ -18,10 +20,10 @@ export function OutputTokensControl() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
         <div className="shrink-0 sm:w-64">
           <Label htmlFor="output-tokens-slider">
-            Tokens de respuesta esperados
+            {t("output.label")}
           </Label>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Se suman a la entrada para estimar el coste total por petición.
+            {t("output.helper")}
           </p>
         </div>
 
@@ -34,7 +36,7 @@ export function OutputTokensControl() {
               max={32768}
               step={64}
               onValueChange={(v) => setOutputTokens(v[0] ?? 0)}
-              aria-label="Tokens de respuesta esperados"
+              aria-label={t("output.label")}
               className="flex-1"
             />
             <span className="w-20 shrink-0 text-right font-mono text-sm font-semibold tabular-nums">

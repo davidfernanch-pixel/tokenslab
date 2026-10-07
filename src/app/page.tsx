@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { selectActiveResults, useTokenLens } from "@/lib/store";
 import { getModel } from "@/lib/models.config";
 import { canCalcCost } from "@/lib/cost";
+import { useT } from "@/lib/i18n";
 
 function ResultSkeleton() {
   return (
@@ -55,6 +56,7 @@ function ResultSkeleton() {
 }
 
 export default function Home() {
+  const t = useT();
   const status = useTokenLens((s) => s.status);
   const results = useTokenLens((s) => s.results);
   const activeModels = useTokenLens((s) => s.activeModels);
@@ -134,7 +136,7 @@ export default function Home() {
 
         {/* ── Zona de análisis ─────────────────────────────────────────── */}
         <section
-          aria-label="Análisis de tokens"
+          aria-label={t("page.analysis.section")}
           className="mx-auto w-full max-w-3xl px-4 sm:px-6"
         >
           <Dropzone />
@@ -150,7 +152,7 @@ export default function Home() {
         {showResults && (
           <section
             ref={resultsRef}
-            aria-label="Resultados del análisis"
+            aria-label={t("page.results.section")}
             aria-live="polite"
             className="mx-auto mt-10 w-full max-w-6xl scroll-mt-20 px-4 pb-16 sm:px-6"
           >
@@ -167,15 +169,15 @@ export default function Home() {
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-lg font-semibold tracking-tight">
-                  Resultados
+                  {t("page.results.title")}
                 </h2>
                 <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-xs tabular-nums text-muted-foreground">
                   {activeResults.length} / {validActiveModels.length || 0}{" "}
-                  modelos
+                  {t("page.results.models")}
                 </span>
                 {isCounting && (
                   <span className="animate-pulse font-mono text-xs text-primary">
-                    contando…
+                    {t("page.results.counting")}
                   </span>
                 )}
                 <ByokStatus />
@@ -189,7 +191,7 @@ export default function Home() {
             {/* Herramientas de análisis (Visualizar / Optimizar / Fragmentar) */}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Herramientas
+                {t("page.tools")}
               </span>
               <span
                 aria-hidden="true"
@@ -209,23 +211,10 @@ export default function Home() {
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                 <div>
                   <p className="text-sm font-medium">
-                    Los precios aún no están configurados
+                    {t("page.priceWarning.title")}
                   </p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    El conteo de tokens y las ventanas de contexto funcionan al
-                    100 %. Para ver costes, rellena{" "}
-                    <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-[11px]">
-                      priceInPerM
-                    </code>{" "}
-                    y{" "}
-                    <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-[11px]">
-                      priceOutPerM
-                    </code>{" "}
-                    en{" "}
-                    <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-[11px]">
-                      src/lib/models.config.ts
-                    </code>{" "}
-                    con los valores de las páginas oficiales de cada proveedor.
+                    {t("page.priceWarning.body")}
                   </p>
                 </div>
               </div>
@@ -242,15 +231,13 @@ export default function Home() {
                 <Settings2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <div>
                   <p className="font-medium">
-                    No hay modelos visibles
+                    {t("page.noModels.title")}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    El análisis se calculó para {results.length} modelos, pero
-                    tienes todos desactivados. Abre{" "}
+                    {t("page.noModels.body", { results: results.length })}{" "}
                     <strong className="font-semibold text-foreground">
-                      Ajustes
-                    </strong>{" "}
-                    y activa los que quieras ver.
+                      {t("page.noModels.settings")}
+                    </strong>
                   </p>
                 </div>
               </div>

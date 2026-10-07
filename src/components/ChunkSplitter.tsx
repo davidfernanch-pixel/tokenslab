@@ -39,6 +39,7 @@ import {
 } from "@/lib/chunker";
 import { copyToClipboard, downloadBlob } from "@/lib/export";
 import { formatNumber } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { useTokenLens } from "@/lib/store";
 import { tokenizerClient } from "@/lib/tokenizers/client";
 
@@ -67,6 +68,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 export function ChunkSplitter() {
+  const t = useT();
   const status = useTokenLens((s) => s.status);
   const text = useTokenLens((s) => s.text);
   const fileName = useTokenLens((s) => s.fileName);
@@ -135,9 +137,7 @@ export function ChunkSplitter() {
       setChunks(result);
     } catch {
       if (runRef.current !== run) return;
-      setError(
-        "No se pudieron calcular los fragmentos. Inténtalo de nuevo o usa un texto más corto.",
-      );
+      setError(t("chunk.error.compute"));
     } finally {
       if (runRef.current === run) setComputing(false);
     }
@@ -145,8 +145,8 @@ export function ChunkSplitter() {
 
   async function copyChunk(chunk: TextChunk) {
     const ok = await copyToClipboard(chunk.text);
-    if (ok) toast.success(`Fragmento ${chunk.index + 1} copiado`);
-    else toast.error("No se pudo copiar el fragmento");
+    if (ok) toast.success(t("chunk.toast.copied", { n: chunk.index + 1 }));
+    else toast.error(t("chunk.toast.copyFailed"));
   }
 
   function handleDownloadTxt() {
@@ -155,10 +155,17 @@ export function ChunkSplitter() {
     const content = chunks
       .map(
         (c) =>
-          `───── Fragmento ${String(c.index + 1).padStart(3, "0")} (${c.tokens} tokens) ─────\n\n${c.text}`,
+          `${t("chunk.file.header", {
+            n: String(c.index + 1).padStart(3, "0"),
+            tokens: c.tokens,
+          })}\n\n${c.text}`,
       )
       .join("\n\n");
-    downloadBlob(content, `${base}-fragmentos.txt`, "text/plain;charset=utf-8");
+    downloadBlob(
+      content,
+      `${base}${t("chunk.file.txtName")}`,
+      "text/plain;charset=utf-8",
+    );
   }
 
   async function handleDownloadZip() {
@@ -170,7 +177,7 @@ export function ChunkSplitter() {
       const zip = new JSZip();
       chunks.forEach((c, i) => {
         zip.file(
-          `${base}-fragmento-${String(i + 1).padStart(3, "0")}.txt`,
+          `${base}${t("chunk.file.chunkName")}${String(i + 1).padStart(3, "0")}.txt`,
           c.text,
         );
       });
@@ -179,11 +186,11 @@ export function ChunkSplitter() {
       // cual (Blob acepta Blobs como parte), así que el cast es seguro.
       downloadBlob(
         blob as unknown as string,
-        `${base}-fragmentos.zip`,
+        `${base}${t("chunk.file.zipName")}`,
         "application/zip",
       );
     } catch {
-      toast.error("No se pudo generar el ZIP");
+      toast.error(t("chunk.toast.zipFailed"));
     } finally {
       setZipping(false);
     }
@@ -194,10 +201,10 @@ export function ChunkSplitter() {
       <Button
         variant="outline"
         disabled={disabled}
-        aria-label="Dividir en fragmentos"
+        aria-label={t("chunk.triggerAria")}
       >
         <Scissors className="h-4 w-4" />
-        <span className="hidden sm:inline">Fragmentar</span>
+        <span className="hidden sm:inline">{t("chunk.trigger")}</span>
       </Button>
     </DialogTrigger>
   );
@@ -217,7 +224,7 @@ export function ChunkSplitter() {
               </span>
             </TooltipTrigger>
             <TooltipContent className="max-w-52">
-              Analiza un archivo o texto primero
+              {t("chunk.analyzeFirst")}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -227,20 +234,14 @@ export function ChunkSplitter() {
 
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Divisor de fragmentos</DialogTitle>
-          <DialogDescription>
-            Trocea el texto en bloques de N tokens exactos (o200k_base) con
-            solapamiento para RAG y prompts largos.
-          </DialogDescription>
+          <DialogTitle>{t("chunk.title")}</DialogTitle>
+          <DialogDescription>{t("chunk.desc")}</DialogDescription>
         </DialogHeader>
 
         {overLimit && (
           <Alert className="border-warning/30 bg-warning/5">
             <TriangleAlert className="text-warning!" />
-            <AlertTitle>
-              El divisor procesa como máximo 1 000 000 caracteres; se
-              fragmentarán solo los primeros.
-            </AlertTitle>
+            <AlertTitle>{t("chunk.limitWarn")}</AlertTitle>
           </Alert>
         )}
 
@@ -248,14 +249,16 @@ export function ChunkSplitter() {
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
           <div className="space-y-2.5">
             <div className="flex items-center justify-between gap-4">
-              <Label htmlFor="chunk-tokens-slider">Tokens por fragmento</Label>
+              <Label htmlFor="chunk-tokens-slider">
+                {t("chunk.tokensPerChunk")}
+              </Label>
               <span className="font-mono text-sm tabular-nums">
                 {formatNumber(chunkTokens)}
               </span>
             </div>
             <Slider
               id="chunk-tokens-slider"
-              aria-label="Tokens por fragmento"
+              aria-label={t("chunk.tokensPerChunk")}
               min={128}
               max={4096}
               step={128}
@@ -267,7 +270,7 @@ export function ChunkSplitter() {
           <div className="space-y-2.5">
             <div className="flex items-center justify-between gap-4">
               <Label htmlFor="overlap-tokens-slider">
-                Solapamiento (tokens)
+                {t("chunk.overlap")}
               </Label>
               <span className="font-mono text-sm tabular-nums">
                 {formatNumber(overlapTokens)}
@@ -275,7 +278,7 @@ export function ChunkSplitter() {
             </div>
             <Slider
               id="overlap-tokens-slider"
-              aria-label="Solapamiento en tokens"
+              aria-label={t("chunk.overlapAria")}
               min={0}
               max={256}
               step={16}
@@ -289,7 +292,7 @@ export function ChunkSplitter() {
         <div className="flex flex-wrap items-center gap-2">
           <PrecisionBadge precision="exact" size="sm" />
           <p className="text-xs text-muted-foreground">
-            Fragmentación exacta con el tokenizador de OpenAI en tu navegador.
+            {t("chunk.exactNote")}
           </p>
         </div>
 
@@ -303,14 +306,14 @@ export function ChunkSplitter() {
           ) : (
             <Scissors className="h-4 w-4" />
           )}
-          Calcular fragmentos
+          {t("chunk.compute")}
         </Button>
 
         {computing && (
           <div className="space-y-2">
-            <Progress value={progress} aria-label="Progreso de fragmentación" />
+            <Progress value={progress} aria-label={t("chunk.progressAria")} />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Tokenizando y empaquetando…</span>
+              <span>{t("chunk.working")}</span>
               <span className="font-mono tabular-nums">{progress} %</span>
             </div>
           </div>
@@ -320,20 +323,29 @@ export function ChunkSplitter() {
           <Alert variant="destructive">
             <TriangleAlert />
             <AlertTitle>{error}</AlertTitle>
-            <AlertDescription>
-              El texto se procesa íntegramente en tu navegador; si el error
-              persiste, prueba con un texto más corto.
-            </AlertDescription>
+            <AlertDescription>{t("chunk.error.hint")}</AlertDescription>
           </Alert>
         )}
 
         {chunks && stats && (
           <>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <Stat label="Fragmentos" value={formatNumber(stats.count)} />
-              <Stat label="Media tokens" value={formatNumber(stats.avgTokens)} />
-              <Stat label="Mín. tokens" value={formatNumber(stats.minTokens)} />
-              <Stat label="Máx. tokens" value={formatNumber(stats.maxTokens)} />
+              <Stat
+                label={t("chunk.stat.count")}
+                value={formatNumber(stats.count)}
+              />
+              <Stat
+                label={t("chunk.stat.avg")}
+                value={formatNumber(stats.avgTokens)}
+              />
+              <Stat
+                label={t("chunk.stat.min")}
+                value={formatNumber(stats.minTokens)}
+              />
+              <Stat
+                label={t("chunk.stat.max")}
+                value={formatNumber(stats.maxTokens)}
+              />
             </div>
 
             <div className="custom-scrollbar max-h-[45vh] space-y-2 overflow-y-auto pr-1">
@@ -352,7 +364,7 @@ export function ChunkSplitter() {
                           {formatNumber(chunk.tokens)}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          tokens
+                          {t("common.tokens")}
                         </span>
                         <span className="text-[11px] text-muted-foreground">
                           [{formatNumber(chunk.start)}–{formatNumber(chunk.end)}]
@@ -368,7 +380,9 @@ export function ChunkSplitter() {
                       size="icon"
                       className="h-7 w-7 shrink-0 rounded-md border"
                       onClick={() => void copyChunk(chunk)}
-                      aria-label={`Copiar fragmento ${chunk.index + 1}`}
+                      aria-label={t("chunk.copyAria", {
+                        n: chunk.index + 1,
+                      })}
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
@@ -382,7 +396,7 @@ export function ChunkSplitter() {
         {!chunks && !computing && !error && (
           <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed py-8 text-sm text-muted-foreground">
             <Scissors className="h-4 w-4 shrink-0" />
-            Ajusta el tamaño y pulsa Calcular fragmentos.
+            {t("chunk.emptyHint")}
           </div>
         )}
 
@@ -393,7 +407,7 @@ export function ChunkSplitter() {
             disabled={!chunks || chunks.length === 0 || computing || zipping}
           >
             <FileText className="h-4 w-4" />
-            Descargar .txt
+            {t("chunk.downloadTxt")}
           </Button>
           <Button
             variant="outline"
@@ -405,7 +419,7 @@ export function ChunkSplitter() {
             ) : (
               <FileArchive className="h-4 w-4" />
             )}
-            Descargar ZIP
+            {t("chunk.downloadZip")}
           </Button>
         </DialogFooter>
       </DialogContent>

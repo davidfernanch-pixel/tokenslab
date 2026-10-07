@@ -1,5 +1,6 @@
 import type { CurrencyCode, ModelConfig, Provider } from "@/lib/models.config";
 import { PROVIDERS } from "@/lib/models.config";
+import { currentLocale, tSync } from "@/lib/i18n";
 import type { AnalysisMeta, FileStats, ModelResult } from "@/lib/types";
 
 export interface ExportRow {
@@ -19,6 +20,13 @@ export interface ExportPayload {
   rows: ExportRow[];
 }
 
+/**
+ * Módulo NO React: las cabeceras y textos visibles de CSV/JSON/Markdown se
+ * traducen con tSync (usa el idioma activo del store) y los números se
+ * formatean según el locale (coma decimal en ES, punto en EN), igual que
+ * lib/format.ts.
+ */
+
 function escCSV(value: string | number | boolean): string {
   const s = String(value);
   // separador ';' → compatible con Excel es-ES
@@ -29,18 +37,21 @@ export function toCSV(p: ExportPayload): string {
   const hasImages = p.rows.some(
     (r) => r.result.imageTokens != null && r.result.imageTokens > 0,
   );
+  const decSep = currentLocale() === "es-ES" ? "," : ".";
   const header = [
-    "modelo",
-    "proveedor",
-    "tokens",
-    ...(hasImages ? ["tokens_texto", "tokens_imagen"] : []),
-    "precision",
-    "ventana_contexto",
-    "uso_ventana_%",
-    "cabe",
-    "exceso_tokens",
-    "coste_total",
-    "moneda",
+    tSync("export.csv.col.model"),
+    tSync("export.csv.col.provider"),
+    tSync("export.csv.col.tokens"),
+    ...(hasImages
+      ? [tSync("export.csv.col.textTokens"), tSync("export.csv.col.imageTokens")]
+      : []),
+    tSync("export.csv.col.precision"),
+    tSync("export.csv.col.contextWindow"),
+    tSync("export.csv.col.usage"),
+    tSync("export.csv.col.fits"),
+    tSync("export.csv.col.overflow"),
+    tSync("export.csv.col.cost"),
+    tSync("export.csv.col.currency"),
   ];
   const lines = [header.join(";")];
   for (const r of p.rows) {
@@ -54,10 +65,12 @@ export function toCSV(p: ExportPayload): string {
           : []),
         r.result.precision,
         r.model.contextWindow,
-        r.percent.toFixed(2).replace(".", ","),
-        r.fits ? "sí" : "no",
+        r.percent.toFixed(2).replace(".", decSep),
+        r.fits ? tSync("export.csv.yes") : tSync("export.csv.no"),
         r.overflow,
-        r.costTotal == null ? "pendiente" : r.costTotal.toFixed(6).replace(".", ","),
+        r.costTotal == null
+          ? tSync("export.csv.pending")
+          : r.costTotal.toFixed(6).replace(".", decSep),
         p.currency,
       ].join(";"),
     );
@@ -67,34 +80,37 @@ export function toCSV(p: ExportPayload): string {
 }
 
 export function toJSON(p: ExportPayload): string {
+  // f → nombre localizado del campo JSON (claves "export.json.field.*")
+  const f = (key: string) => tSync(`export.json.field.${key}`);
   return JSON.stringify(
     {
-      herramienta: "TokenLens",
-      generado: new Date().toISOString(),
-      archivo: p.meta,
-      estadisticas: p.stats,
-      tokens_salida_estimados: p.outputTokens,
-      moneda: p.currency,
-      resultados: p.rows.map((r) => ({
-        modelo: r.model.name,
+      [f("tool")]: "TokenLens",
+      [f("generated")]: new Date().toISOString(),
+      [f("file")]: p.meta,
+      [f("stats")]: p.stats,
+      [f("outputTokens")]: p.outputTokens,
+      [f("currency")]: p.currency,
+      [f("results")]: p.rows.map((r) => ({
+        [f("model")]: r.model.name,
         id: r.model.id,
-        proveedor: PROVIDERS[r.model.provider].label as Provider,
+        [f("provider")]: PROVIDERS[r.model.provider].label as Provider,
         tokens: r.result.tokens,
-        ...(r.result.textTokens != null ? { tokens_texto: r.result.textTokens } : {}),
+        ...(r.result.textTokens != null
+          ? { [f("textTokens")]: r.result.textTokens }
+          : {}),
         ...(r.result.imageTokens != null
-          ? { tokens_imagen: r.result.imageTokens }
+          ? { [f("imageTokens")]: r.result.imageTokens }
           : {}),
         precision: r.result.precision,
-        ventana_contexto: r.model.contextWindow,
-        uso_ventana_pct: Number(r.percent.toFixed(2)),
-        cabe: r.fits,
-        exceso_tokens: r.overflow,
-        precio_entrada_usd_1m: r.model.priceInPerM,
-        precio_salida_usd_1m: r.model.priceOutPerM,
-        coste_total: r.costTotal,
+        [f("contextWindow")]: r.model.contextWindow,
+        [f("usage")]: Number(r.percent.toFixed(2)),
+        [f("fits")]: r.fits,
+        [f("overflow")]: r.overflow,
+        [f("priceIn")]: r.model.priceInPerM,
+        [f("priceOut")]: r.model.priceOutPerM,
+        [f("cost")]: r.costTotal,
       })),
-      aviso:
-        "Precios pendientes de configurar (TODO en models.config.ts). Ventanas de contexto según documentación pública: verifica antes de usar.",
+      [f("notice")]: tSync("export.json.notice"),
     },
     null,
     2,
@@ -105,34 +121,39 @@ export function toMarkdown(p: ExportPayload): string {
   const hasImages = p.rows.some(
     (r) => r.result.imageTokens != null && r.result.imageTokens > 0,
   );
+  const locale = currentLocale();
+  const decSep = locale === "es-ES" ? "," : ".";
+  const n = (v: number) => v.toLocaleString(locale);
   const lines: string[] = [];
-  lines.push("# TokenLens — Resultados");
+  lines.push(tSync("export.md.title"));
   lines.push("");
   lines.push(
-    `- **Archivo:** ${p.meta.fileName} (${(p.meta.fileSize / 1024).toFixed(1).replace(".", ",")} KB)`,
+    `- **${tSync("export.md.file")}:** ${p.meta.fileName} (${(p.meta.fileSize / 1024).toFixed(1).replace(".", decSep)} KB)`,
   );
-  lines.push(`- **Caracteres:** ${p.stats.chars.toLocaleString("es-ES")}`);
-  lines.push(`- **Palabras:** ${p.stats.words.toLocaleString("es-ES")}`);
-  lines.push(`- **Líneas:** ${p.stats.lines.toLocaleString("es-ES")}`);
+  lines.push(`- **${tSync("export.md.chars")}:** ${n(p.stats.chars)}`);
+  lines.push(`- **${tSync("export.md.words")}:** ${n(p.stats.words)}`);
+  lines.push(`- **${tSync("export.md.lines")}:** ${n(p.stats.lines)}`);
   lines.push(
-    `- **Tokens de salida estimados:** ${p.outputTokens.toLocaleString("es-ES")}`,
+    `- **${tSync("export.md.outputTokens")}:** ${n(p.outputTokens)}`,
   );
   lines.push("");
   if (hasImages) {
-    lines.push(
-      "| Modelo | Proveedor | Tokens | Texto | Imagen | Ventana | Uso | ¿Cabe? |",
-    );
+    lines.push(`| ${tSync("export.md.headImages")} |`);
     lines.push("| --- | --- | ---: | ---: | ---: | ---: | ---: | :---: |");
   } else {
-    lines.push("| Modelo | Proveedor | Tokens | Ventana | Uso | ¿Cabe? |");
+    lines.push(`| ${tSync("export.md.head")} |`);
     lines.push("| --- | --- | ---: | ---: | ---: | :---: |");
   }
   for (const r of p.rows) {
-    const base = `| ${r.model.name} | ${PROVIDERS[r.model.provider].label} | ${r.result.tokens.toLocaleString("es-ES")} (${r.result.precision})`;
-    const tail = ` | ${r.model.contextWindow.toLocaleString("es-ES")} | ${r.percent.toFixed(1).replace(".", ",")} % | ${r.fits ? "Sí" : `No (excede en ${r.overflow.toLocaleString("es-ES")})`} |`;
+    const base = `| ${r.model.name} | ${PROVIDERS[r.model.provider].label} | ${n(r.result.tokens)} (${r.result.precision})`;
+    const tail = ` | ${n(r.model.contextWindow)} | ${r.percent.toFixed(1).replace(".", decSep)} % | ${
+      r.fits
+        ? tSync("export.md.yes")
+        : tSync("export.md.no", { n: n(r.overflow) })
+    } |`;
     if (hasImages) {
       lines.push(
-        `${base} | ${(r.result.textTokens ?? r.result.tokens).toLocaleString("es-ES")} | ${(r.result.imageTokens ?? 0).toLocaleString("es-ES")}${tail}`,
+        `${base} | ${n(r.result.textTokens ?? r.result.tokens)} | ${n(r.result.imageTokens ?? 0)}${tail}`,
       );
     } else {
       lines.push(`${base}${tail}`);
@@ -140,13 +161,9 @@ export function toMarkdown(p: ExportPayload): string {
   }
   lines.push("");
   if (hasImages) {
-    lines.push(
-      "> Los tokens de imagen se estiman con las fórmulas públicas de cada proveedor (🟡 estimado).",
-    );
+    lines.push(`> ${tSync("export.md.imageNote")}`);
   }
-  lines.push(
-    "> Precios pendientes de configurar (`TODO` en `models.config.ts`). Generado con TokenLens — procesamiento 100 % local.",
-  );
+  lines.push(`> ${tSync("export.md.footerNote")}`);
   return lines.join("\n");
 }
 

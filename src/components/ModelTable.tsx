@@ -32,6 +32,7 @@ import {
   formatWindow,
 } from "@/lib/format";
 import { useTokenLens } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 import type { FitInfo, ModelResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -60,21 +61,22 @@ interface TableRowData {
   costTotal: number | null;
 }
 
-const COLUMNS: Array<{ key: SortKey; label: string; align: "left" | "right" }> =
-  [
-    { key: "name", label: "Modelo", align: "left" },
-    { key: "provider", label: "Proveedor", align: "left" },
-    { key: "tokens", label: "Tokens", align: "right" },
-    { key: "window", label: "Ventana", align: "right" },
-    { key: "usage", label: "Uso", align: "right" },
-    { key: "priceIn", label: "Entrada /1M", align: "right" },
-    { key: "priceOut", label: "Salida /1M", align: "right" },
-    { key: "cost", label: "Coste total", align: "right" },
-    { key: "fits", label: "¿Cabe?", align: "left" },
-  ];
-
-const PRICE_TODO_HINT =
-  "TODO: rellenar desde la página oficial de precios";
+// las etiquetas se traducen en el render con useT() (dict-data, "table.col.*")
+const COLUMNS: Array<{
+  key: SortKey;
+  labelKey: string;
+  align: "left" | "right";
+}> = [
+  { key: "name", labelKey: "table.col.model", align: "left" },
+  { key: "provider", labelKey: "table.col.provider", align: "left" },
+  { key: "tokens", labelKey: "table.col.tokens", align: "right" },
+  { key: "window", labelKey: "table.col.window", align: "right" },
+  { key: "usage", labelKey: "table.col.usage", align: "right" },
+  { key: "priceIn", labelKey: "table.col.priceIn", align: "right" },
+  { key: "priceOut", labelKey: "table.col.priceOut", align: "right" },
+  { key: "cost", labelKey: "table.col.cost", align: "right" },
+  { key: "fits", labelKey: "table.col.fits", align: "left" },
+];
 
 /** Compara valores numéricos anulables: null siempre al final, sin importar la dirección. */
 function compareNullable(
@@ -93,6 +95,7 @@ export function ModelTable({
 }: {
   data: Array<{ model: ModelConfig; result: ModelResult }>;
 }) {
+  const t = useT();
   const outputTokens = useTokenLens((s) => s.outputTokens);
   const currency = useTokenLens((s) => s.currency);
   const [sort, setSort] = useState<SortState>({ key: "tokens", dir: 1 });
@@ -193,7 +196,7 @@ export function ModelTable({
                         col.align === "right" && "flex-row-reverse",
                       )}
                     >
-                      {col.label}
+                      {t(col.labelKey)}
                       {isActive ? (
                         sort.dir === 1 ? (
                           <ChevronUp className="h-3.5 w-3.5 text-primary" />
@@ -244,7 +247,7 @@ export function ModelTable({
                           <span className="truncate">{row.model.name}</span>
                           {isNewRelease(row.model) && (
                             <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-500/10 px-1.5 py-px font-mono text-[9px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                              nuevo
+                              {t("common.new")}
                             </span>
                           )}
                         </p>
@@ -276,12 +279,13 @@ export function ModelTable({
                       </span>
                       {row.result.imageTokens != null && (
                         <span className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
-                          texto{" "}
-                          {formatNumber(
-                            row.result.textTokens ??
-                              row.result.tokens - row.result.imageTokens,
-                          )}{" "}
-                          + img {formatNumber(row.result.imageTokens)}
+                          {t("table.breakdown", {
+                            text: formatNumber(
+                              row.result.textTokens ??
+                                row.result.tokens - row.result.imageTokens,
+                            ),
+                            img: formatNumber(row.result.imageTokens),
+                          })}
                         </span>
                       )}
                     </div>
@@ -324,7 +328,7 @@ export function ModelTable({
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-52 text-xs">
-                          {PRICE_TODO_HINT}
+                          {t("table.priceTodo")}
                         </TooltipContent>
                       </Tooltip>
                     ) : (
@@ -343,7 +347,7 @@ export function ModelTable({
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-52 text-xs">
-                          {PRICE_TODO_HINT}
+                          {t("table.priceTodo")}
                         </TooltipContent>
                       </Tooltip>
                     ) : (
@@ -362,7 +366,7 @@ export function ModelTable({
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-52 text-xs">
-                          {PRICE_TODO_HINT}
+                          {t("table.priceTodo")}
                         </TooltipContent>
                       </Tooltip>
                     ) : (
@@ -373,9 +377,11 @@ export function ModelTable({
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-52 text-xs">
-                          {formatCost(row.costIn, currency)} entrada +{" "}
-                          {formatCost(row.costOut, currency)} salida (
-                          {formatNumber(outputTokens)} tokens)
+                          {t("table.costTooltip", {
+                            in: formatCost(row.costIn, currency),
+                            out: formatCost(row.costOut, currency),
+                            n: formatNumber(outputTokens),
+                          })}
                         </TooltipContent>
                       </Tooltip>
                     )}
@@ -384,12 +390,12 @@ export function ModelTable({
                     {row.fit.fits ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
                         <Check className="h-3 w-3" />
-                        Cabe
+                        {t("table.fits")}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
                         <X className="h-3 w-3" />
-                        No cabe
+                        {t("table.noFits")}
                       </span>
                     )}
                   </TableCell>

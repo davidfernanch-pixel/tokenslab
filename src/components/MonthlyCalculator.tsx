@@ -24,6 +24,7 @@ import {
 import { calcMonthlyProjection, normalizeUsage } from "@/lib/monthly";
 import { MODELS, getModel, PROVIDERS } from "@/lib/models.config";
 import { formatCompact, formatCost, formatNumber } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { useTokenLens } from "@/lib/store";
 import type { ModelResult } from "@/lib/types";
 
@@ -85,6 +86,7 @@ function Metric({ label, value }: { label: string; value: string }) {
  * momento de la apertura y el formulario empieza limpio en cada sesión.
  */
 function MonthlyCalculatorBody() {
+  const t = useT();
   const activeModels = useTokenLens((s) => s.activeModels);
   const results = useTokenLens((s) => s.results);
   const outputTokens = useTokenLens((s) => s.outputTokens);
@@ -134,10 +136,10 @@ function MonthlyCalculatorBody() {
     <>
       {/* Modelo */}
       <div className="space-y-2">
-        <Label htmlFor="monthly-model">Modelo</Label>
+        <Label htmlFor="monthly-model">{t("monthly.model")}</Label>
         <Select value={modelId} onValueChange={handleModelChange}>
           <SelectTrigger id="monthly-model" className="w-full">
-            <SelectValue placeholder="Selecciona un modelo" />
+            <SelectValue placeholder={t("monthly.modelPlaceholder")} />
           </SelectTrigger>
           <SelectContent className="custom-scrollbar">
             {MODELS.map((m) => (
@@ -162,14 +164,14 @@ function MonthlyCalculatorBody() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <NumberField
           id="monthly-requests"
-          label="Solicitudes por día"
+          label={t("monthly.requestsPerDay")}
           value={requestsPerDay}
           onChange={setRequestsPerDay}
           min={1}
         />
         <NumberField
           id="monthly-days"
-          label="Días al mes"
+          label={t("monthly.days")}
           value={days}
           onChange={setDays}
           min={1}
@@ -177,14 +179,14 @@ function MonthlyCalculatorBody() {
         />
         <NumberField
           id="monthly-tokens-in"
-          label="Tokens de entrada / solicitud"
+          label={t("monthly.tokensIn")}
           value={tokensIn}
           onChange={setTokensIn}
           min={0}
         />
         <NumberField
           id="monthly-tokens-out"
-          label="Tokens de salida / solicitud"
+          label={t("monthly.tokensOut")}
           value={tokensOut}
           onChange={setTokensOut}
           min={0}
@@ -195,22 +197,22 @@ function MonthlyCalculatorBody() {
       <div className="space-y-4 rounded-xl border bg-surface-elevated p-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Metric
-            label="Tokens de entrada al mes"
+            label={t("monthly.tokensInMonth")}
             value={formatCompact(projection.tokensIn)}
           />
           <Metric
-            label="Tokens de salida al mes"
+            label={t("monthly.tokensOutMonth")}
             value={formatCompact(projection.tokensOut)}
           />
           <Metric
-            label="Solicitudes al mes"
+            label={t("monthly.requestsMonth")}
             value={formatNumber(projection.requests)}
           />
         </div>
 
         <div className="border-t pt-4">
           <p className="text-sm text-muted-foreground">
-            Coste estimado al mes
+            {t("monthly.costLabel")}
           </p>
           {projection.cost != null ? (
             <p className="mt-1 font-mono text-2xl tabular-nums">
@@ -225,18 +227,18 @@ function MonthlyCalculatorBody() {
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
                 <div className="leading-relaxed">
                   <p className="font-medium">
-                    Los precios aún no están configurados
+                    {t("monthly.pricesTitle")}
                   </p>
                   <p className="mt-1 text-muted-foreground">
-                    Rellena{" "}
-                    <code className="font-mono text-[11px]">priceInPerM</code> y{" "}
+                    {t("monthly.pricesBody.a")}{" "}
+                    <code className="font-mono text-[11px]">priceInPerM</code>{" "}
+                    {t("monthly.pricesBody.b")}{" "}
                     <code className="font-mono text-[11px]">priceOutPerM</code>{" "}
-                    en{" "}
+                    {t("monthly.pricesBody.c")}{" "}
                     <code className="font-mono text-[11px]">
                       src/lib/models.config.ts
                     </code>{" "}
-                    con los valores oficiales. Sin precios no se inventan
-                    costes.
+                    {t("monthly.pricesBody.d")}
                   </p>
                 </div>
               </div>
@@ -245,8 +247,7 @@ function MonthlyCalculatorBody() {
         </div>
 
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Estimación lineal: los proveedores facturan por millón de tokens. El
-          uso real varía con cachés y descuentos.
+          {t("monthly.linearNote")}
         </p>
       </div>
     </>
@@ -254,23 +255,21 @@ function MonthlyCalculatorBody() {
 }
 
 export function MonthlyCalculator() {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" aria-label="Calcular coste mensual">
+        <Button variant="outline" aria-label={t("monthly.triggerAria")}>
           <Calculator className="h-4 w-4" />
-          <span className="hidden sm:inline">Coste mensual</span>
+          <span className="hidden sm:inline">{t("monthly.trigger")}</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Calculadora de coste mensual</DialogTitle>
-          <DialogDescription>
-            Proyecta tu uso diario a un mes y estima el coste con los precios
-            configurados.
-          </DialogDescription>
+          <DialogTitle>{t("monthly.title")}</DialogTitle>
+          <DialogDescription>{t("monthly.desc")}</DialogDescription>
         </DialogHeader>
         <MonthlyCalculatorBody />
       </DialogContent>

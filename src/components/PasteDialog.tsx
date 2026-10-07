@@ -16,8 +16,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useTokenLens } from "@/lib/store";
 import { formatNumber } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 export function PasteDialog() {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const analyzeText = useTokenLens((s) => s.analyzeText);
@@ -39,15 +41,13 @@ export function PasteDialog() {
           onKeyDown={(e) => e.stopPropagation()}
         >
           <ClipboardType className="h-4 w-4" />
-          Pegar texto
+          {t("paste.trigger")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Pega tu texto</DialogTitle>
-          <DialogDescription>
-            Se analiza localmente en tu navegador, sin subidas.
-          </DialogDescription>
+          <DialogTitle>{t("paste.title")}</DialogTitle>
+          <DialogDescription>{t("paste.desc")}</DialogDescription>
         </DialogHeader>
 
         <Textarea
@@ -61,32 +61,32 @@ export function PasteDialog() {
             }
           }}
           className="min-h-[240px] font-mono text-sm"
-          placeholder="Pega aquí tu prompt, documento, código…"
-          aria-label="Texto a analizar"
+          placeholder={t("paste.placeholder")}
+          aria-label={t("paste.aria")}
         />
 
         <p className="text-xs text-muted-foreground">
           <span className="font-mono tabular-nums">
             {formatNumber(text.length)}
           </span>{" "}
-          caracteres ·{" "}
+          {t("paste.chars")} ·{" "}
           <span className="font-mono tabular-nums">
             {formatNumber(wordCount)}
           </span>{" "}
-          palabras
+          {t("paste.words")}
         </p>
 
         <DialogFooter className="gap-3 sm:justify-between">
           <p className="text-xs text-muted-foreground">
-            Ctrl + Enter para analizar
+            {t("paste.ctrlEnter")}
           </p>
           <div className="flex flex-col-reverse gap-2 sm:flex-row">
             <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+              {t("common.cancel")}
             </Button>
             <Button onClick={handleAnalyze} disabled={!text.trim()}>
               <ScanSearch className="h-4 w-4" />
-              Analizar
+              {t("paste.analyze")}
             </Button>
           </div>
         </DialogFooter>
