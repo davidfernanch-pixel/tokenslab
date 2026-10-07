@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   Eye,
   EyeOff,
+  HardDriveDownload,
   Info,
   KeyRound,
   RotateCcw,
@@ -36,12 +37,13 @@ import {
 import {
   CURRENCIES,
   DEFAULT_ACTIVE_MODELS,
+  HF_TOKENIZERS,
   MODELS,
   PROVIDERS,
   PROVIDER_ORDER,
   isNewRelease,
 } from "@/lib/models.config";
-import { usePrecisionMeta, useT } from "@/lib/i18n";
+import { useLang, usePrecisionMeta, useT } from "@/lib/i18n";
 import { formatWindowCompact } from "@/lib/format";
 import { useTokenLens } from "@/lib/store";
 import { useByok, type ByokProvider } from "@/lib/byok";
@@ -141,6 +143,7 @@ function ApiKeyField({
 
 export function SettingsPanel() {
   const t = useT();
+  const lang = useLang((s) => s.lang);
   const META = usePrecisionMeta();
   const activeModels = useTokenLens((s) => s.activeModels);
   const currency = useTokenLens((s) => s.currency);
@@ -151,6 +154,9 @@ export function SettingsPanel() {
   const byokEnabled = useByok((s) => s.enabled);
   const byokSetEnabled = useByok((s) => s.setEnabled);
   const byokKeys = useByok((s) => s.keys);
+
+  const hfEnabled = useTokenLens((s) => s.hfEnabled);
+  const setHfEnabled = useTokenLens((s) => s.setHfEnabled);
 
   const groups = PROVIDER_ORDER.map((provider) => ({
     provider,
@@ -167,6 +173,19 @@ export function SettingsPanel() {
   const byokReady = upgradeable.filter(
     (m) => byokKeys[m.provider as "anthropic" | "google"]?.trim(),
   ).length;
+
+  // Modelos activos con tokenizador HF disponible (conteo exacto local)
+  const hfActive = MODELS.filter(
+    (m) => activeModels.includes(m.id) && m.tokenizer === "hf" && m.hfRepo,
+  );
+  // Familias únicas que se descargarían con la selección activa
+  const hfActiveRepos = [
+    ...new Set(hfActive.map((m) => m.hfRepo as string)),
+  ];
+  const hfActiveMB = hfActiveRepos.reduce(
+    (sum, repo) => sum + (HF_TOKENIZERS[repo]?.sizeMB ?? 0),
+    0,
+  );
 
   return (
     <Sheet>
@@ -325,6 +344,90 @@ export function SettingsPanel() {
                     {t("settings.byok.counter", {
                       ready: byokReady,
                       total: upgradeable.length,
+                    })}
+                  </span>
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+
+        {/* Tokenizadores locales exactos (HF) */}
+        <div className="border-t border-border p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <Label htmlFor="hf-switch" className="flex items-center gap-2">
+                {t("settings.hf.title")}
+                {hfEnabled && hfActive.length > 0 && (
+                  <span className="inline-flex items-center rounded-full border border-success/30 bg-success/10 px-1.5 py-px font-mono text-[9px] font-semibold uppercase tracking-wide text-success">
+                    {t("settings.hf.active")}
+                  </span>
+                )}
+              </Label>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                {t("settings.hf.desc")}
+              </p>
+            </div>
+            <Switch
+              id="hf-switch"
+              checked={hfEnabled}
+              onCheckedChange={setHfEnabled}
+              aria-label={t("settings.hf.switchAria")}
+            />
+          </div>
+
+          {/* Familias disponibles con su tamaño aproximado */}
+          <ul className="mt-4 space-y-1.5">
+            {Object.values(HF_TOKENIZERS).map((info) => {
+              const used = hfActiveRepos.includes(info.repo);
+              return (
+                <li
+                  key={info.repo}
+                  className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-surface-elevated"
+                >
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: info.color }}
+                    aria-hidden
+                  />
+                  <span className="min-w-0 flex-1 truncate font-medium">
+                    {info.label}
+                  </span>
+                  <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                    ≈{info.sizeMB} MB
+                  </span>
+                  {hfEnabled && (
+                    <span
+                      className={
+                        "shrink-0 rounded-full px-1.5 py-px font-mono text-[9px] font-semibold uppercase " +
+                        (used
+                          ? "bg-success/10 text-success"
+                          : "bg-secondary text-muted-foreground")
+                      }
+                    >
+                      {used ? t("settings.hf.inUse") : t("settings.hf.idle")}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="mt-3 flex items-start gap-2 rounded-lg bg-surface-elevated p-3 text-xs leading-relaxed text-muted-foreground">
+            <HardDriveDownload
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success"
+              aria-hidden
+            />
+            <p>
+              {t("settings.hf.note.a")}
+              {hfEnabled && hfActive.length > 0 && (
+                <>
+                  {" "}
+                  <span className="text-foreground">
+                    {t("settings.hf.counter", {
+                      n: hfActive.length,
+                      mb: hfActiveMB,
+                      plural: lang === "es" && hfActive.length !== 1 ? "s" : "",
                     })}
                   </span>
                 </>

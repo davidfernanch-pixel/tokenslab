@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { Info, Settings2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
+import { BackToTop } from "@/components/BackToTop";
 import { Dropzone } from "@/components/Dropzone";
 import { FileStatsBar } from "@/components/FileStatsBar";
 import { ResultCard } from "@/components/ResultCard";
@@ -13,6 +14,7 @@ import { ModelTable } from "@/components/ModelTable";
 import { ExportMenu } from "@/components/ExportMenu";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { ByokStatus } from "@/components/ByokStatus";
+import { HfStatus } from "@/components/HfStatus";
 import { OutputTokensControl } from "@/components/OutputTokensControl";
 import { TokenVisualizer } from "@/components/TokenVisualizer";
 import { OptimizerPanel } from "@/components/OptimizerPanel";
@@ -77,6 +79,38 @@ export default function Home() {
     }
     prevStatusRef.current = status;
   }, [status]);
+
+  // Atajos de teclado globales: P = pegar texto, V = visualizador de tokens.
+  // Solo con modificadores libres, sin foco en campos de texto y sin diálogos
+  // abiertos («?» vive en ShortcutsHelp, Ctrl+Enter en PasteDialog).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key !== "p" && key !== "v") return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (document.querySelector("[data-state='open']")) return;
+      if (key === "p") {
+        document
+          .querySelector<HTMLElement>('[data-shortcut="paste"]')
+          ?.click();
+      } else {
+        document
+          .querySelector<HTMLElement>('[data-shortcut="visualizer"]:not(:disabled)')
+          ?.click();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const activeResults = useMemo(
     () => selectActiveResults(results, activeModels),
@@ -181,6 +215,7 @@ export default function Home() {
                   </span>
                 )}
                 <ByokStatus />
+                <HfStatus />
               </div>
               <div className="flex items-center gap-2">
                 <SettingsPanel />
@@ -277,6 +312,7 @@ export default function Home() {
       </main>
 
       <Footer />
+      <BackToTop />
     </div>
   );
 }

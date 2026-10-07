@@ -37,6 +37,7 @@ export function PasteDialog() {
       <DialogTrigger asChild>
         <Button
           variant="outline"
+          data-shortcut="paste"
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >

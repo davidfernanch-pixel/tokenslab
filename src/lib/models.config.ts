@@ -57,7 +57,44 @@ export interface ModelConfig {
   vision?: boolean;
   /** año de lanzamiento (se muestra como insignia "nuevo" en la UI) */
   releaseYear?: number;
+  /**
+   * Repo de Hugging Face con el tokenizer.json OFICIAL del modelo
+   * (o su espejo ungated verificado). Solo con tokenizer: "hf".
+   * El conteo exacto local se activa desde Ajustes (opt-in: descarga
+   * de 6–28 MB por familia, cacheada en el navegador).
+   */
+  hfRepo?: string;
   enabledByDefault: boolean;
+}
+
+/**
+ * Familias de tokenizadores abiertos de Hugging Face (verificadas en
+ * oct-2026 vía HF API: repos públicos, vocab y ETags comprobados).
+ *
+ * - Llama 4: tokenizer NUEVO de vocab 202.048 (≠ Llama 3). Scout y Maverick
+ *   comparten el MISMO tokenizer.json (ETag idéntico). Espejo ungated de
+ *   unsloth (meta-llama exige login).
+ * - Llama 3.3: vocab 128.256 (tokenizer de la serie Llama 3.1/3.3).
+ * - Mistral Medium 3.5 / Large 3: repos oficiales abiertos (tekken, 131k).
+ * - DeepSeek V4 Pro / V4.1 Flash: repos oficiales abiertos (vocab 129.280,
+ *   BPE byte-level con pre-split de dígitos y CJK).
+ * - Qwen 3.8: vocab 248.320 (nueva generación 3.5+). Los modelos -Max son
+ *   API-only: se usa el hermano abierto de la misma generación (ETag
+ *   idéntico entre Qwen3.8-2.4T-A95B y Qwen3.8-27B).
+ * - Qwen 3.6 Plus / Qwen3 235B: idem, hermano abierto de su generación.
+ *
+ * Tamaño aproximado del tokenizer.json (medido oct-2026, solo informativo
+ * para la UI de Ajustes; la descarga real es la del archivo en HF).
+ */
+export interface HfTokenizerInfo {
+  /** repo completo, p. ej. "mistralai/Mistral-Medium-3.5-128B" */
+  repo: string;
+  /** etiqueta visible de la familia */
+  label: string;
+  /** color del proveedor */
+  color: string;
+  /** tamaño aproximado del tokenizer.json en MB */
+  sizeMB: number;
 }
 
 export interface ProviderInfo {
@@ -74,6 +111,63 @@ export const PROVIDERS: Record<Provider, ProviderInfo> = {
   deepseek: { label: "DeepSeek", color: "#4d6bfe" },
   xai: { label: "xAI", color: "#9ca3af" },
   qwen: { label: "Qwen", color: "#615ced" },
+};
+
+export const HF_TOKENIZERS: Record<string, HfTokenizerInfo> = {
+  "unsloth/Llama-4-Scout-17B-16E-Instruct": {
+    repo: "unsloth/Llama-4-Scout-17B-16E-Instruct",
+    label: "Llama 4 (Maverick + Scout)",
+    color: PROVIDERS.meta.color,
+    sizeMB: 28,
+  },
+  "unsloth/Llama-3.3-70B-Instruct": {
+    repo: "unsloth/Llama-3.3-70B-Instruct",
+    label: "Llama 3.3",
+    color: PROVIDERS.meta.color,
+    sizeMB: 17,
+  },
+  "mistralai/Mistral-Medium-3.5-128B": {
+    repo: "mistralai/Mistral-Medium-3.5-128B",
+    label: "Mistral Medium 3.5",
+    color: PROVIDERS.mistral.color,
+    sizeMB: 17,
+  },
+  "mistralai/Mistral-Large-3-675B-Instruct-2512": {
+    repo: "mistralai/Mistral-Large-3-675B-Instruct-2512",
+    label: "Mistral Large 3",
+    color: PROVIDERS.mistral.color,
+    sizeMB: 17,
+  },
+  "deepseek-ai/DeepSeek-V4-Pro": {
+    repo: "deepseek-ai/DeepSeek-V4-Pro",
+    label: "DeepSeek V4 Pro",
+    color: PROVIDERS.deepseek.color,
+    sizeMB: 6,
+  },
+  "deepseek-ai/DeepSeek-V4.1-Flash": {
+    repo: "deepseek-ai/DeepSeek-V4.1-Flash",
+    label: "DeepSeek V4.1 Flash",
+    color: PROVIDERS.deepseek.color,
+    sizeMB: 6,
+  },
+  "Qwen/Qwen3.8-2.4T-A95B": {
+    repo: "Qwen/Qwen3.8-2.4T-A95B",
+    label: "Qwen 3.8 (Max)",
+    color: PROVIDERS.qwen.color,
+    sizeMB: 13,
+  },
+  "Qwen/Qwen3.6-27B": {
+    repo: "Qwen/Qwen3.6-27B",
+    label: "Qwen 3.6 Plus",
+    color: PROVIDERS.qwen.color,
+    sizeMB: 13,
+  },
+  "Qwen/Qwen3-235B-A22B": {
+    repo: "Qwen/Qwen3-235B-A22B",
+    label: "Qwen3 235B",
+    color: PROVIDERS.qwen.color,
+    sizeMB: 11,
+  },
 };
 
 export const PROVIDER_ORDER: Provider[] = [
@@ -389,12 +483,14 @@ export const MODELS: ModelConfig[] = [
     id: "llama-4-maverick",
     name: "Llama 4 Maverick",
     provider: "meta",
-    tokenizer: "estimate",
+    tokenizer: "hf",
     precision: "estimated",
     contextWindow: 1_048_576,
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.7,
+    // mismo tokenizer.json que Scout (ETag idéntico verificado en HF)
+    hfRepo: "unsloth/Llama-4-Scout-17B-16E-Instruct",
     vision: true,
     releaseYear: 2025,
     enabledByDefault: true,
@@ -403,12 +499,13 @@ export const MODELS: ModelConfig[] = [
     id: "llama-4-scout",
     name: "Llama 4 Scout",
     provider: "meta",
-    tokenizer: "estimate",
+    tokenizer: "hf",
     precision: "estimated",
     contextWindow: 10_000_000,
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.7,
+    hfRepo: "unsloth/Llama-4-Scout-17B-16E-Instruct",
     vision: true,
     releaseYear: 2025,
     enabledByDefault: false,
@@ -417,12 +514,13 @@ export const MODELS: ModelConfig[] = [
     id: "llama-3.3-70b",
     name: "Llama 3.3 70B (legacy)",
     provider: "meta",
-    tokenizer: "estimate",
+    tokenizer: "hf",
     precision: "estimated",
     contextWindow: 128_000,
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.7,
+    hfRepo: "unsloth/Llama-3.3-70B-Instruct",
     releaseYear: 2024,
     enabledByDefault: false,
   },
@@ -432,7 +530,7 @@ export const MODELS: ModelConfig[] = [
     id: "mistral-medium-3-5",
     name: "Mistral Medium 3.5",
     provider: "mistral",
-    tokenizer: "estimate",
+    tokenizer: "hf",
     precision: "estimated",
     contextWindow: 262_144,
     // Fuente: pricing API de Mistral corroborado por varios rastreadores
@@ -440,6 +538,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: 1.5,
     priceOutPerM: 7.5,
     estimateRatio: 3.8,
+    hfRepo: "mistralai/Mistral-Medium-3.5-128B",
     vision: true, // admite entrada de texto e imagen (modelo denso de 128B)
     releaseYear: 2026,
     enabledByDefault: true,
@@ -448,12 +547,13 @@ export const MODELS: ModelConfig[] = [
     id: "mistral-large-3",
     name: "Mistral Large 3",
     provider: "mistral",
-    tokenizer: "estimate",
+    tokenizer: "hf",
     precision: "estimated",
     contextWindow: 262_144,
     priceInPerM: 0.5,
     priceOutPerM: 1.5,
     estimateRatio: 3.8,
+    hfRepo: "mistralai/Mistral-Large-3-675B-Instruct-2512",
     releaseYear: 2025,
     enabledByDefault: false,
   },
@@ -478,12 +578,13 @@ export const MODELS: ModelConfig[] = [
     id: "deepseek-v4-pro",
     name: "DeepSeek V4 Pro",
     provider: "deepseek",
-    tokenizer: "estimate",
+    tokenizer: "hf",
     precision: "estimated",
     contextWindow: 1_000_000,
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.7,
+    hfRepo: "deepseek-ai/DeepSeek-V4-Pro",
     releaseYear: 2026,
     enabledByDefault: true,
   },
@@ -491,12 +592,13 @@ export const MODELS: ModelConfig[] = [
     id: "deepseek-flash",
     name: "DeepSeek V4.1 Flash",
     provider: "deepseek",
-    tokenizer: "estimate",
+    tokenizer: "hf",
     precision: "estimated",
     contextWindow: 1_000_000,
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.7,
+    hfRepo: "deepseek-ai/DeepSeek-V4.1-Flash",
     vision: true, // multimodal nativo (sep-2026)
     releaseYear: 2026,
     enabledByDefault: true,
@@ -553,13 +655,16 @@ export const MODELS: ModelConfig[] = [
     id: "qwen3.8-max",
     name: "Qwen3.8 Max",
     provider: "qwen",
-    tokenizer: "estimate",
+    tokenizer: "hf",
     precision: "estimated",
     contextWindow: 1_000_000,
     // Fuente: anuncios de lanzamiento de Alibaba (ago-2026), corroborados
     priceInPerM: 2,
     priceOutPerM: 6,
     estimateRatio: 3.6,
+    // Qwen3.8-Max es API-only: tokenizer de la generación 3.8 abierta
+    // (ETag idéntico al de Qwen3.8-27B, verificado en HF)
+    hfRepo: "Qwen/Qwen3.8-2.4T-A95B",
     releaseYear: 2026,
     enabledByDefault: true,
   },
@@ -567,12 +672,14 @@ export const MODELS: ModelConfig[] = [
     id: "qwen3.6-plus",
     name: "Qwen3.6-Plus",
     provider: "qwen",
-    tokenizer: "estimate",
+    tokenizer: "hf",
     precision: "estimated",
     contextWindow: 1_000_000,
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.6,
+    // Qwen3.6-Plus es API-only: tokenizer de la generación 3.6 abierta
+    hfRepo: "Qwen/Qwen3.6-27B",
     releaseYear: 2026,
     enabledByDefault: false,
   },
@@ -580,12 +687,13 @@ export const MODELS: ModelConfig[] = [
     id: "qwen3-235b",
     name: "Qwen3 235B (legacy)",
     provider: "qwen",
-    tokenizer: "estimate",
+    tokenizer: "hf",
     precision: "estimated",
     contextWindow: 131_072,
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.6,
+    hfRepo: "Qwen/Qwen3-235B-A22B",
     releaseYear: 2025,
     enabledByDefault: false,
   },

@@ -45,6 +45,15 @@ export interface ByokStatus {
   error: string | null;
 }
 
+/** Estado de los tokenizadores HF locales durante un análisis */
+export interface HfStatus {
+  phase: "idle" | "running" | "done" | "failed";
+  /** modelos contados con el BPE oficial de HF (🟢 exacto local) */
+  upgraded: number;
+  /** primer repo cuyo tokenizador no se pudo descargar, si lo hay */
+  failedRepo: string | null;
+}
+
 interface TokenLensState {
   // estado del análisis
   status: Status;
@@ -68,10 +77,15 @@ interface TokenLensState {
   /** número de análisis: invalida upgrades BYOK obsoletos */
   byokRun: number;
 
+  // tokenizadores HF locales (por análisis)
+  hf: HfStatus;
+
   // ajustes (persistidos)
   activeModels: string[];
   outputTokens: number;
   currency: CurrencyCode;
+  /** tokenizadores locales exactos de Hugging Face (opt-in) */
+  hfEnabled: boolean;
 
   // acciones
   analyzeFiles: (list: File[], mode?: "replace" | "add") => Promise<void>;
@@ -83,15 +97,21 @@ interface TokenLensState {
   setActiveModels: (ids: string[]) => void;
   setOutputTokens: (n: number) => void;
   setCurrency: (c: CurrencyCode) => void;
+  setHfEnabled: (enabled: boolean) => void;
 }
 
-function toCountModels(codeHint?: boolean) {
+function toCountModels(codeHint?: boolean, activeIds?: string[], hfEnabled?: boolean) {
+  const active = new Set(activeIds ?? []);
   return MODELS.map((m) => ({
     id: m.id,
     name: m.name,
     tokenizer: m.tokenizer,
     estimateRatio: m.estimateRatio ?? 4,
     codeHint,
+    hfRepo: m.hfRepo,
+    // solo los modelos ACTIVOS cuentan con tokenizador HF: evita descargar
+    // familias (6–28 MB) de modelos que el usuario tiene ocultos
+    hf: hfEnabled && m.hfRepo != null && active.has(m.id),
   }));
 }
 
@@ -228,6 +248,7 @@ export const useTokenLens = create<TokenLensState>()(
         const codeHint = textFiles.some((f) => f.code);
 
         const runId = get().byokRun + 1;
+        const hfActive = get().hfEnabled;
 
         set({
           text,
@@ -244,9 +265,10 @@ export const useTokenLens = create<TokenLensState>()(
           progress: { phase: "count", label: tSync("store.progress.counting"), percent: 0 },
           byok: { phase: "idle", upgraded: 0, failed: 0, error: null },
           byokRun: runId,
+          hf: { phase: "idle", upgraded: 0, failedRepo: null },
         });
 
-        const models = toCountModels(codeHint);
+        const models = toCountModels(codeHint, get().activeModels, hfActive);
         const totals = new Map<
           string,
           { tokens: number; ms: number; precision: ModelResult["precision"] }
@@ -306,13 +328,29 @@ export const useTokenLens = create<TokenLensState>()(
 
               await tokenizerClient.count(file.text ?? "", models, (ev) => {
                 if (ev.type === "loading") {
+                  // el worker no tiene acceso al idioma: traduce la CLAVE aquí
+                  if (ev.kind === "hf") {
+                    set((state) => ({
+                      hf:
+                        state.hf.phase === "running"
+                          ? state.hf
+                          : { ...state.hf, phase: "running" },
+                    }));
+                  }
                   set({
                     progress: {
                       phase: "load-tokenizer",
-                      label: ev.label,
-                      percent: get().progress?.percent ?? 0,
+                      label: tSync(ev.labelKey, ev.vars),
+                      percent: ev.percent ?? get().progress?.percent ?? 0,
                     },
                   });
+                } else if (ev.type === "hf-failed") {
+                  set((state) => ({
+                    hf:
+                      state.hf.failedRepo == null
+                        ? { ...state.hf, failedRepo: ev.repo, phase: "failed" }
+                        : state.hf,
+                  }));
                 } else if (ev.type === "model-done") {
                   doneInFile.add(ev.result.modelId);
                   const prev =
@@ -327,6 +365,12 @@ export const useTokenLens = create<TokenLensState>()(
                   const cfg = getModel(ev.result.modelId);
                   if (exactTokens == null && cfg?.tokenizer === "tiktoken-o200k") {
                     exactTokens = ev.result.tokens;
+                  }
+                  // modelos con conteo exacto vía tokenizador HF local
+                  if (cfg?.tokenizer === "hf" && ev.result.precision === "exact") {
+                    set((state) => ({
+                      hf: { ...state.hf, upgraded: state.hf.upgraded + 1 },
+                    }));
                   }
 
                   if (isLast) {
@@ -362,6 +406,13 @@ export const useTokenLens = create<TokenLensState>()(
             status: "done",
             progress: { phase: "done", label: tSync("store.progress.done"), percent: 100 },
           });
+
+          // cerrar el chip HF (fase done) si hubo conteo exacto local
+          set((state) =>
+            state.hf.phase === "running"
+              ? { hf: { ...state.hf, phase: "done" } }
+              : state,
+          );
 
           // Fase BYOK: pedir conteos oficiales (Anthropic/Google) si el
           // usuario lo ha activado. Los resultados se actualizan en directo
@@ -419,9 +470,12 @@ export const useTokenLens = create<TokenLensState>()(
         byok: { phase: "idle", upgraded: 0, failed: 0, error: null },
         byokRun: 0,
 
+        hf: { phase: "idle", upgraded: 0, failedRepo: null },
+
         activeModels: DEFAULT_ACTIVE_MODELS,
         outputTokens: 1024,
         currency: "USD",
+        hfEnabled: false,
 
         analyzeFiles: async (list, mode = "replace") => {
           const current = get();
@@ -517,7 +571,7 @@ export const useTokenLens = create<TokenLensState>()(
                   });
                 } catch (err) {
                   warnings.push(
-                    `${file.name} (${err instanceof Error ? err.message : "no se pudo leer la imagen"})`,
+                    `${file.name} (${err instanceof Error ? err.message : tSync("store.error.imageRead")})`,
                   );
                 }
               } else {
@@ -534,7 +588,7 @@ export const useTokenLens = create<TokenLensState>()(
                 });
                 if (!text.trim()) {
                   warnings.push(
-                    `${file.name} (${warning ?? "sin texto extraíble"})`,
+                    `${file.name} (${warning ?? tSync("store.error.noTextExtractable")})`,
                   );
                   continue;
                 }
@@ -562,7 +616,7 @@ export const useTokenLens = create<TokenLensState>()(
               error:
                 err instanceof Error
                   ? err.message
-                  : "Error inesperado al leer los archivos.",
+                  : tSync("store.error.unexpected"),
               progress: null,
             });
             return;
@@ -592,11 +646,12 @@ export const useTokenLens = create<TokenLensState>()(
           await get().analyzeFiles([file], "replace");
         },
 
-        analyzeText: async (text, name = "texto pegado") => {
+        analyzeText: async (text, name) => {
+          const label = name ?? tSync("store.pastedName");
           if (!text.trim()) {
             set({
               status: "error",
-              error: "El texto está vacío: escribe o pega algo de contenido.",
+              error: tSync("store.error.emptyText"),
               progress: null,
             });
             return;
@@ -616,7 +671,7 @@ export const useTokenLens = create<TokenLensState>()(
           });
           const file: AnalyzedFile = {
             id: newId(),
-            name,
+            name: label,
             sizeBytes: new Blob([text]).size,
             kind: "text",
             text,
@@ -656,6 +711,7 @@ export const useTokenLens = create<TokenLensState>()(
             progress: null,
             byok: { phase: "idle", upgraded: 0, failed: 0, error: null },
             byokRun: get().byokRun + 1,
+            hf: { phase: "idle", upgraded: 0, failedRepo: null },
           });
         },
 
@@ -673,6 +729,8 @@ export const useTokenLens = create<TokenLensState>()(
         setOutputTokens: (n) => set({ outputTokens: n }),
 
         setCurrency: (c) => set({ currency: c }),
+
+        setHfEnabled: (enabled) => set({ hfEnabled: enabled }),
       };
     },
     {
@@ -682,6 +740,7 @@ export const useTokenLens = create<TokenLensState>()(
         activeModels: state.activeModels,
         outputTokens: state.outputTokens,
         currency: state.currency,
+        hfEnabled: state.hfEnabled,
       }),
       /**
        * Migración: el catálogo se renovó por completo en oct-2026 (GPT-5.5,

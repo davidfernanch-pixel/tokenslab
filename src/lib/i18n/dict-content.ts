@@ -17,7 +17,7 @@ export const CONTENT_ES: Record<string, string> = {
     "Arrastra un archivo (PDF, DOCX, XLSX, TXT, MD, código…) o pega texto directamente. Nada viaja a ningún servidor.",
   "how.step2.title": "Tokenizamos en local",
   "how.step2.desc":
-    "Contamos los tokens con el tokenizador oficial cuando existe versión para navegador (OpenAI: o200k_base y cl100k_base) y con estimación por ratio para el resto. Web Workers evitan congelar la interfaz.",
+    "Contamos los tokens con el tokenizador oficial cuando existe versión para navegador (OpenAI: o200k_base y cl100k_base; Llama, Mistral, DeepSeek y Qwen: BPE oficial de Hugging Face, opt-in en Ajustes) y con estimación por ratio para el resto. Web Workers evitan congelar la interfaz.",
   "how.step3.title": "Compara y decide",
   "how.step3.desc":
     "Ventana de contexto usada, coste estimado por petición y qué modelos admiten tu texto, en tarjetas, gráfico y tabla.",
@@ -37,7 +37,10 @@ export const CONTENT_ES: Record<string, string> = {
     "BYOK (Bring Your Own Key): activas el modo en Ajustes, pegas tu API key de Anthropic o Google y, tras cada análisis, TokenLens consulta el endpoint público de conteo de tokens (count_tokens / countTokens) y sustituye la estimación 🟡 por el número oficial 🔵. Las keys viven solo en tu navegador (localStorage) y viajan únicamente al proveedor a través de un proxy sin estado que no las guarda. No funciona con imágenes (el conteo oficial solo cubre texto) y si una consulta falla, la tarjeta conserva su estimación.",
   "faq.q3": "¿Qué significa la insignia de cada resultado?",
   "faq.a3":
-    "Verde (Exacto): se ha ejecutado el tokenizador real en tu navegador (OpenAI). Azul (Oficial): conteo devuelto por la API del proveedor con tu key (Anthropic y Google en modo BYOK). Ámbar (Estimado): aproximación por ratio de caracteres ajustada por idioma y tipo de contenido (resto de modelos).",
+    "Verde (Exacto): se ha ejecutado el tokenizador real en tu navegador (OpenAI, y Llama/Mistral/DeepSeek/Qwen si activas los tokenizadores HF en Ajustes). Azul (Oficial): conteo devuelto por la API del proveedor con tu key (Anthropic y Google en modo BYOK). Ámbar (Estimado): aproximación por ratio de caracteres ajustada por idioma y tipo de contenido (resto de modelos).",
+  "faq.q7": "¿Qué son los tokenizadores locales exactos (HF)?",
+  "faq.a7":
+    "Los modelos abiertos (Llama 4, Llama 3.3, Mistral Medium/Large 3, DeepSeek V4/V4.1, Qwen 3/3.6/3.8) publican su tokenizador oficial en Hugging Face. Al activar el modo en Ajustes, TokenLens descarga ese tokenizer.json (6–28 MB por familia, una sola vez: queda cacheado en el navegador) y ejecuta el mismo BPE byte-level que el modelo, con los conteos verificados contra la implementación de referencia. El texto nunca se envía a ningún servidor: solo se descarga el archivo del tokenizador desde la CDN de Hugging Face. Si la descarga falla o estás sin conexión, esos modelos vuelven a la estimación 🟡.",
   "faq.q4": "¿Por qué el conteo estimado difiere del real?",
   "faq.a4":
     "Cada proveedor usa su propio tokenizador y no todos son públicos. La estimación divide los caracteres entre un ratio típico del modelo (ajustado por idioma, código o JSON) y lo combina con el recuento de palabras. Suele desviarse menos del 10 %, pero trátalo como orientativo.",
@@ -85,7 +88,7 @@ export const CONTENT_EN: Record<string, string> = {
     "Drag in a file (PDF, DOCX, XLSX, TXT, MD, code…) or paste text directly. Nothing ever travels to a server.",
   "how.step2.title": "We tokenize locally",
   "how.step2.desc":
-    "We count tokens with the official tokenizer whenever a browser build exists (OpenAI: o200k_base and cl100k_base) and with a ratio-based estimate for the rest. Web Workers keep the interface from freezing.",
+    "We count tokens with the official tokenizer whenever a browser build exists (OpenAI: o200k_base and cl100k_base; Llama, Mistral, DeepSeek and Qwen: official Hugging Face BPE, opt-in in Settings) and with a ratio-based estimate for the rest. Web Workers keep the interface from freezing.",
   "how.step3.title": "Compare and decide",
   "how.step3.desc":
     "Context window usage, estimated cost per request and which models fit your text — in cards, chart and table.",
@@ -105,7 +108,10 @@ export const CONTENT_EN: Record<string, string> = {
     "BYOK (Bring Your Own Key): you enable the mode in Settings, paste your Anthropic or Google API key and, after every analysis, TokenLens queries the public token-counting endpoint (count_tokens / countTokens) and swaps the 🟡 estimate for the official number 🔵. Keys live only in your browser (localStorage) and travel exclusively to the provider through a stateless proxy that never stores them. It does not work with images (the official count covers text only), and if a query fails the card keeps its estimate.",
   "faq.q3": "What does the badge on each result mean?",
   "faq.a3":
-    "Green (Exact): the provider's real tokenizer ran in your browser (OpenAI). Blue (Official): count returned by the provider API with your key (Anthropic and Google in BYOK mode). Amber (Estimated): character-ratio approximation adjusted for language and content type (all other models).",
+    "Green (Exact): the model's real tokenizer ran in your browser (OpenAI, plus Llama/Mistral/DeepSeek/Qwen if you enable the HF tokenizers in Settings). Blue (Official): count returned by the provider API with your key (Anthropic and Google in BYOK mode). Amber (Estimated): character-ratio approximation adjusted for language and content type (all other models).",
+  "faq.q7": "What are the exact local tokenizers (HF)?",
+  "faq.a7":
+    "Open-weight models (Llama 4, Llama 3.3, Mistral Medium/Large 3, DeepSeek V4/V4.1, Qwen 3/3.6/3.8) publish their official tokenizer on Hugging Face. When you enable the mode in Settings, TokenLens downloads that tokenizer.json (6–28 MB per family, once: cached by the browser) and runs the very same byte-level BPE as the model — with counts verified against the reference implementation. Your text is never sent anywhere: only the tokenizer file is fetched from the Hugging Face CDN. If the download fails or you are offline, those models fall back to the 🟡 estimate.",
   "faq.q4": "Why does the estimated count differ from the real one?",
   "faq.a4":
     "Every provider uses its own tokenizer and not all of them are public. The estimate divides characters by a typical ratio for the model (adjusted for language, code or JSON) and combines it with the word count. It usually deviates by less than 10 %, but treat it as a guideline.",

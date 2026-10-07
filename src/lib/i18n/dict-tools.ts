@@ -185,6 +185,17 @@ export const TOOLS_ES: Record<string, string> = {
     "). Nunca se almacenan ni se registran en el servidor.",
   "settings.byok.counter":
     "{ready} de {total} modelos activos recibirán conteo oficial.",
+  "settings.hf.title": "Tokenizadores locales exactos (HF)",
+  "settings.hf.active": "activo",
+  "settings.hf.desc":
+    "Descarga el tokenizer.json oficial de cada familia (Llama, Mistral, DeepSeek, Qwen) desde Hugging Face y cuenta con el BPE real en tu navegador (insignia 🟢 Exacto). Opt-in: son archivos de 6–28 MB por familia.",
+  "settings.hf.switchAria": "Activar los tokenizadores locales exactos",
+  "settings.hf.inUse": "en uso",
+  "settings.hf.idle": "—",
+  "settings.hf.note.a":
+    "Solo se descargan las familias de tus modelos activos (una vez: quedan cacheadas en el navegador). El texto nunca sale de tu equipo: se cuenta en local con el BPE oficial. Si la descarga falla, esos modelos vuelven a la estimación (🟡).",
+  "settings.hf.counter":
+    "{n} modelo{plural} activo{plural} · conteo exacto · ≈{mb} MB en esta primera descarga.",
   "settings.currency.label": "Moneda para los costes",
   "settings.currency.usd": "USD ($ dólar)",
   "settings.currency.eur": "EUR (€ euro)",
@@ -398,6 +409,17 @@ export const TOOLS_EN: Record<string, string> = {
     "). They are never stored or logged on the server.",
   "settings.byok.counter":
     "{ready} of {total} active models will get an official count.",
+  "settings.hf.title": "Exact local tokenizers (HF)",
+  "settings.hf.active": "active",
+  "settings.hf.desc":
+    "Downloads each family's official tokenizer.json (Llama, Mistral, DeepSeek, Qwen) from Hugging Face and counts with the real BPE in your browser (🟢 Exact badge). Opt-in: files are 6–28 MB per family.",
+  "settings.hf.switchAria": "Enable exact local tokenizers",
+  "settings.hf.inUse": "in use",
+  "settings.hf.idle": "—",
+  "settings.hf.note.a":
+    "Only the families of your active models are downloaded (once: then cached by the browser). Your text never leaves your machine — it is counted locally with the official BPE. If a download fails, those models fall back to the estimate (🟡).",
+  "settings.hf.counter":
+    "{n} active model{plural} · exact counting · ≈{mb} MB on this first download.",
   "settings.currency.label": "Currency for costs",
   "settings.currency.usd": "USD ($ dollar)",
   "settings.currency.eur": "EUR (€ euro)",

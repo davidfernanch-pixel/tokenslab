@@ -96,7 +96,7 @@ export const PRECISION_META: Record<
     label: "Exacto",
     short: "Exacto",
     description:
-      "Tokenizador real del proveedor ejecutado en tu navegador (BPE oficial).",
+      "Tokenizador oficial del modelo ejecutado en tu navegador: tiktoken (OpenAI) o BPE abierto de Hugging Face (Llama, Mistral, DeepSeek, Qwen).",
     dotClass: "bg-success",
   },
   official: {

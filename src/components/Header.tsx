@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Languages } from "lucide-react";
 
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { Badge } from "@/components/ui/badge";
 import { useLang, useT, type Lang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -22,10 +23,18 @@ export function Header() {
   const lang = useLang((s) => s.lang);
   const setLang = useLang((s) => s.setLang);
 
-  // Mantener <html lang> sincronizado con el idioma activo
+  // Título y meta descripción localizados (el SSR de layout.tsx es estático ES)
+  const metaTitle = t("meta.title");
+  const metaDesc = t("meta.description");
+
+  // Mantener <html lang>, <title> y la meta descripción sincronizados
   useEffect(() => {
     document.documentElement.lang = lang;
-  }, [lang]);
+    document.title = metaTitle;
+    document
+      .querySelector('meta[name="description"]')
+      ?.setAttribute("content", metaDesc);
+  }, [lang, metaTitle, metaDesc]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
@@ -112,6 +121,7 @@ export function Header() {
               );
             })}
           </div>
+          <ShortcutsHelp />
           <ThemeToggle />
         </div>
       </div>

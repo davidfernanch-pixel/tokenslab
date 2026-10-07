@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { BarChart3, Cpu, Info, Upload } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Reveal } from "@/components/Reveal";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -83,64 +84,67 @@ export function HowItWorks() {
 
         {/* Pasos */}
         <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {STEPS.map((step) => (
-            <Card
-              key={step.number}
-              className="rounded-xl border-border bg-card motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-1 hover:border-primary/30"
-            >
-              <CardContent className="flex h-full flex-col">
-                <div className="flex items-center justify-between">
-                  <span className="text-gradient-violet font-mono text-sm font-semibold tabular-nums">
-                    {step.number}
-                  </span>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <step.icon className="h-5 w-5" aria-hidden="true" />
+          {STEPS.map((step, i) => (
+            <Reveal key={step.number} delay={i * 0.08} className="h-full">
+              <Card
+                className="h-full rounded-xl border-border bg-card motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-1 hover:border-primary/30"
+              >
+                <CardContent className="flex h-full flex-col">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gradient-violet font-mono text-sm font-semibold tabular-nums">
+                      {step.number}
+                    </span>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <step.icon className="h-5 w-5" aria-hidden="true" />
+                    </div>
                   </div>
-                </div>
-                <h3 className="mt-4 font-semibold">{step.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {step.description}
-                </p>
-              </CardContent>
-            </Card>
+                  <h3 className="mt-4 font-semibold">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    {step.description}
+                  </p>
+                </CardContent>
+              </Card>
+            </Reveal>
           ))}
         </div>
 
         {/* Insignias de precisión */}
-        <Card className="mt-12 rounded-xl border-border bg-card p-6">
-          <div>
-            <h3 className="font-semibold">{t("how.badges.title")}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("how.badges.intro")}
-            </p>
-            <ul className="mt-5 space-y-4">
-              {PRECISION_LEVELS.map((level) => (
-                <li key={level.title} className="flex items-start gap-3">
-                  <span
-                    className={cn(
-                      "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-                      level.dotClass,
-                    )}
-                    aria-hidden="true"
-                  />
-                  <div>
-                    <p className="text-sm font-semibold">{level.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {level.description}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-5 flex items-start gap-2.5 rounded-lg bg-surface-elevated p-4 text-xs leading-relaxed text-muted-foreground">
-              <Info
-                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary"
-                aria-hidden="true"
-              />
-              <p>{t("how.config.note")}</p>
+        <Reveal delay={0.1}>
+          <Card className="mt-12 rounded-xl border-border bg-card p-6">
+            <div>
+              <h3 className="font-semibold">{t("how.badges.title")}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("how.badges.intro")}
+              </p>
+              <ul className="mt-5 space-y-4">
+                {PRECISION_LEVELS.map((level) => (
+                  <li key={level.title} className="flex items-start gap-3">
+                    <span
+                      className={cn(
+                        "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+                        level.dotClass,
+                      )}
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold">{level.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {level.description}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-5 flex items-start gap-2.5 rounded-lg bg-surface-elevated p-4 text-xs leading-relaxed text-muted-foreground">
+                <Info
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary"
+                  aria-hidden="true"
+                />
+                <p>{t("how.config.note")}</p>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </Reveal>
       </div>
     </section>
   );

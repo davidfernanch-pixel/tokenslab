@@ -142,6 +142,7 @@ export function TokenVisualizer() {
                 <Button
                   variant="outline"
                   disabled={disabled}
+                  data-shortcut="visualizer"
                   aria-label={t("viz.trigger")}
                 >
                   <Eye className="h-4 w-4" />

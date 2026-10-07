@@ -12,6 +12,23 @@ export const CORE_ES: Record<string, string> = {
   "header.nav.faq": "FAQ",
   "header.language": "Idioma",
 
+  // ── Metadatos del documento (título y meta description) ──────────────
+  "meta.title": "TokenLens — Calculadora de tokens multi-IA",
+  "meta.description":
+    "Calcula cuántos tokens ocupa tu texto o archivo en GPT, Claude, Gemini, Llama, Mistral, DeepSeek, Grok y Qwen. Procesamiento 100 % local, insignias de precisión y coste estimado.",
+
+  // ── Atajos de teclado ─────────────────────────────────────────────────────
+  "shortcuts.triggerAria": "Atajos de teclado",
+  "shortcuts.title": "Atajos de teclado",
+  "shortcuts.desc": "Navega más rápido sin tocar el ratón.",
+  "shortcuts.paste": "Abrir el diálogo de pegar texto",
+  "shortcuts.viz": "Abrir el visualizador de tokens (con resultados)",
+  "shortcuts.ctrlEnter": "Analizar el texto pegado",
+  "shortcuts.help": "Mostrar u ocultar esta ayuda",
+  "shortcuts.esc": "Cerrar diálogos y paneles",
+  "shortcuts.note": "Los atajos se ignoran mientras escribes en un campo de texto o hay un diálogo abierto.",
+  "backTop.aria": "Volver arriba",
+
   // ── Hero ────────────────────────────────────────────────────────────────
   "hero.privacy.chip": "Tu archivo no sale de tu navegador",
   "hero.title.a": "¿Cuántos",
@@ -42,7 +59,7 @@ export const CORE_ES: Record<string, string> = {
   // ── Insignias de precisión ──────────────────────────────────────────────
   "precision.exact": "Exacto",
   "precision.exact.desc":
-    "Tokenizador real del proveedor ejecutado en tu navegador (BPE oficial).",
+    "Tokenizador oficial del modelo ejecutado en tu navegador: tiktoken (OpenAI) o el BPE abierto de Hugging Face (Llama, Mistral, DeepSeek, Qwen).",
   "precision.official": "Oficial (API)",
   "precision.official.desc":
     "Conteo oficial devuelto por el endpoint del proveedor con tu propia key (modo BYOK).",
@@ -74,6 +91,15 @@ export const CORE_ES: Record<string, string> = {
   "byok.err.noContact": "No se pudo contactar con la API del proveedor (¿sin conexión?).",
   "byok.err.noProxy": "No se pudo contactar con el proxy local /api/count.",
 
+  // ── Chip HF (cabecera de resultados) ──────────────────────────────────────
+  "hf.status.running": "conteo exacto HF…",
+  "hf.status.done": "{n} exacto{plural} (HF)",
+  "hf.status.done.tip":
+    "Tokenizadores oficiales de Hugging Face ejecutados en tu navegador: Llama, Mistral, DeepSeek y Qwen cuentan con el BPE real (🟢).",
+  "hf.status.failed": "HF no disponible",
+  "hf.status.failed.tip":
+    "No se pudo descargar el tokenizador de {repo} (¿sin conexión?). Esos modelos se muestran como estimados.",
+
   // ── Optimizador (títulos/descripciones de sugerencias) ──────────────────
   "optimizer.minify-json.title": "Minificar JSON",
   "optimizer.minify-json.desc": "El texto es JSON válido: se compacta sin espacios ni sangría. Mismo dato, menos tokens.",
@@ -89,13 +115,21 @@ export const CORE_ES: Record<string, string> = {
   // ── Store (cabos restantes) ─────────────────────────────────────────
   "store.fileLabel": "{n} archivos",
   "store.unknownType": "desconocido",
+  "store.pastedName": "texto pegado",
   "store.error.rejected": "No se pudo analizar. Se omitieron: {list}.",
   "store.error.noneAdded": "No se añadió ningún archivo. Se omitieron: {list}.",
   "store.error.noFiles": "No se recibió ningún archivo.",
+  "store.error.emptyText": "El texto está vacío: escribe o pega algo de contenido.",
+  "store.error.imageRead": "no se pudo leer la imagen",
+  "store.error.noTextExtractable": "sin texto extraíble",
+  "store.error.unexpected": "Error inesperado al leer los archivos.",
   "store.warning.skipped": "Archivos omitidos: {list}.",
   "store.progress.extractingOne": "Extrayendo “{name}”…",
   "store.progress.extractingMany": "Extrayendo {n} archivos…",
   "store.progress.extractingStep": "Extrayendo “{name}” ({i}/{n})…",
+  "store.progress.loadTokenizer": "Cargando tokenizador {name}…",
+  "store.progress.downloadHf": "Descargando {name} · {percent} %",
+  "store.progress.loadHf": "Preparando {name}…",
   "store.error.extractMixed": "No se pudo extraer contenido de ningún archivo. {list}",
   "store.error.extractEmpty": "No se pudo extraer texto de los archivos (pueden estar vacíos o dañados).",
 };
@@ -107,6 +141,23 @@ export const CORE_EN: Record<string, string> = {
   "header.nav.how": "How it works",
   "header.nav.faq": "FAQ",
   "header.language": "Language",
+
+  // ── Document metadata (title and meta description) ────────────────────
+  "meta.title": "TokenLens — Multi-AI token calculator",
+  "meta.description":
+    "Find out how many tokens your text or file takes in GPT, Claude, Gemini, Llama, Mistral, DeepSeek, Grok and Qwen. 100 % local processing, precision badges and estimated cost.",
+
+  // ── Keyboard shortcuts ───────────────────────────────────────────────────
+  "shortcuts.triggerAria": "Keyboard shortcuts",
+  "shortcuts.title": "Keyboard shortcuts",
+  "shortcuts.desc": "Move faster without touching the mouse.",
+  "shortcuts.paste": "Open the paste-text dialog",
+  "shortcuts.viz": "Open the token visualizer (with results)",
+  "shortcuts.ctrlEnter": "Analyze the pasted text",
+  "shortcuts.help": "Show or hide this help",
+  "shortcuts.esc": "Close dialogs and panels",
+  "shortcuts.note": "Shortcuts are ignored while you are typing in a text field or a dialog is open.",
+  "backTop.aria": "Back to top",
 
   // ── Hero ────────────────────────────────────────────────────────────────
   "hero.privacy.chip": "Your file never leaves your browser",
@@ -138,7 +189,7 @@ export const CORE_EN: Record<string, string> = {
   // ── Precision badges ────────────────────────────────────────────────────
   "precision.exact": "Exact",
   "precision.exact.desc":
-    "The provider's real tokenizer running in your browser (official BPE).",
+    "The model's official tokenizer running in your browser: tiktoken (OpenAI) or the open Hugging Face BPE (Llama, Mistral, DeepSeek, Qwen).",
   "precision.official": "Official (API)",
   "precision.official.desc":
     "Official count returned by the provider's endpoint using your own key (BYOK mode).",
@@ -170,6 +221,15 @@ export const CORE_EN: Record<string, string> = {
   "byok.err.noContact": "Could not reach the provider API (no connection?).",
   "byok.err.noProxy": "Could not reach the local /api/count proxy.",
 
+  // ── HF chip (results header) ────────────────────────────────────────────
+  "hf.status.running": "exact HF count…",
+  "hf.status.done": "{n} exact (HF)",
+  "hf.status.done.tip":
+    "Official Hugging Face tokenizers executed in your browser: Llama, Mistral, DeepSeek and Qwen count with the real BPE (🟢).",
+  "hf.status.failed": "HF unavailable",
+  "hf.status.failed.tip":
+    "The tokenizer for {repo} could not be downloaded (offline?). Those models are shown as estimated.",
+
   // ── Optimizer (suggestion titles/descriptions) ─────────────────────────
   "optimizer.minify-json.title": "Minify JSON",
   "optimizer.minify-json.desc": "The text is valid JSON: it gets compacted without spaces or indentation. Same data, fewer tokens.",
@@ -185,13 +245,21 @@ export const CORE_EN: Record<string, string> = {
   // ── Store (remaining strings) ───────────────────────────────────────
   "store.fileLabel": "{n} files",
   "store.unknownType": "unknown",
+  "store.pastedName": "pasted text",
   "store.error.rejected": "Could not analyze. Skipped: {list}.",
   "store.error.noneAdded": "No file was added. Skipped: {list}.",
   "store.error.noFiles": "No file was received.",
+  "store.error.emptyText": "The text is empty: type or paste some content.",
+  "store.error.imageRead": "image could not be read",
+  "store.error.noTextExtractable": "no extractable text",
+  "store.error.unexpected": "Unexpected error while reading files.",
   "store.warning.skipped": "Skipped files: {list}.",
   "store.progress.extractingOne": "Extracting “{name}”…",
   "store.progress.extractingMany": "Extracting {n} files…",
   "store.progress.extractingStep": "Extracting “{name}” ({i}/{n})…",
+  "store.progress.loadTokenizer": "Loading tokenizer {name}…",
+  "store.progress.downloadHf": "Downloading {name} · {percent}%",
+  "store.progress.loadHf": "Preparing {name}…",
   "store.error.extractMixed": "No content could be extracted from any file. {list}",
   "store.error.extractEmpty": "Text could not be extracted from the files (they may be empty or corrupted).",
 };
