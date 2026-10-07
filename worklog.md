@@ -412,3 +412,43 @@ TokenLens mantiene las fases 1-4 completas (multiarchivo, imágenes, comparador,
 - Precios de 27 modelos siguen null (sin fuente oficial corroborada en las búsquedas): gpt-5.5-pro, gpt-5.4, gpt-5.2-codex, todos los Anthropic menos Opus 5.5, todos los Gemini, DeepSeek, Llama, Grok 4.1 Fast, Qwen3.6-Plus, Codestral. Riesgo: ventanas y precios de terceros pueden variar — re-verificar contra páginas oficiales antes de producción.
 - EUR sigue sin tipo de cambio (CURRENCIES.EUR.rate = null).
 - Prioridades siguientes del roadmap: 1) BYOK /api/count (Anthropic count_tokens, Gemini countTokens) → badges 🔵 Oficial; 2) tokenizadores HF locales (transformers.js) para Claude/Llama/DeepSeek/Qwen; 3) i18n ES/EN real; 4) fórmula de imagen para modelos 2026 (las actuales siguen las fórmulas documentadas de cada proveedor).
+
+---
+Task ID: 15 (revisión cron — Fase 3 BYOK: conteo oficial con tu propia API key)
+Agent: orchestrator (Z.ai Code)
+Task: Revisión programada: QA base, decisión de enfoque (prioridad nº1 del roadmap = BYOK /api/count) e implementación completa del modo BYOK con badges 🔵 Oficial.
+
+Work Log:
+- QA base: página carga, análisis de ejemplo (15 tarjetas, Exacto/Estimado), sin errores de consola, dev.log limpio. Confirmado que nada producía aún el badge "Oficial" → BYOK era la carencia.
+- NUEVO src/lib/byok.ts: store Zustand persistido (tokenlens-byok, v1) con enabled + keys{anthropic,google}; helpers byokKeyFor/isByokCandidate; fetchOfficialCount → POST /api/count (relativo, mismo origen).
+- NUEVO src/app/api/count/route.ts: proxy SIN ESTADO hacia Anthropic count_tokens (x-api-key, anthropic-version 2023-06-01) y Gemini :countTokens (x-goog-api-key). Validación estricta (proveedor/modelo del catálogo/texto ≤1,5M/key presente), mapeo de errores del proveedor a mensajes claros en español (401/403/404/429/5xx + caso Google 400 "API key not valid" → mensaje de key inválida), dynamic=force-dynamic. La key nunca se persiste ni se registra.
+- store.ts: fase BYOK tras el conteo local — upgradeWithOfficialCounts(text, runId): filtra modelos ACTIVOS con tokenizer estimate de Anthropic/Google y key presente; NO se aplica si hay imágenes (honestidad de la insignia); cada respuesta válida reemplaza el resultado en directo (🟡→🔵) con guard byokRun contra análisis obsoletos; el historial se escribe DESPUÉS con los números finales; reset invalida upgrades pendientes. Estado byok {phase, upgraded, failed, error} + byokRun.
+- SettingsPanel: sección "Conteo oficial (BYOK)" — Switch principal, badge "activo", ApiKeyField con icono KeyRound, input password con revelar (Eye/EyeOff) y borrado (X), placeholder desactivado, nota de seguridad con ShieldCheck (localStorage + proxy sin estado) y contador "N de M modelos activos recibirán conteo oficial".
+- ByokStatus (nuevo componente) en la cabecera de Resultados: chip azul pulsante "conteo oficial…" durante las consultas, chip "N oficiales" al completar (con tooltip de fallos parciales), chip ámbar "API no disponible" si todo falla.
+- ResultCard: acento azul permanente para resultados oficiales (border-google/30 + línea superior bg-google + sombra hover azul).
+- Faq: nueva pregunta BYOK (cómo funciona, seguridad, limitación de imágenes, fallo → estimación); privacidad e insignias actualizadas. HowItWorks: "en camino" → "disponible en Ajustes". types.ts: PRECISION_META.official actualizado.
+- DEBUG+FIX: una sesión de diagnóstico reveló ReferenceError de un log temporal (useByok sin importar) y duplicación de módulos por HMR de Turbopack (zustand con 2 instancias) — resuelto con import correcto + recarga limpia; logs de depuración eliminados después.
+- QA agent-browser de los TRES caminos:
+  * BYOK off → sin chip, sin llamadas API, 26 estimados (regresión OK).
+  * BYOK on + keys falsas → 7 POST /api/count (401/502 reales del sandbox a api.anthropic.com/generativelanguage.googleapis.com), chip "API no disponible" con tooltip del error, tarjetas conservan estimación, sin error global, sin errores de consola.
+  * BYOK on + éxito simulado (fetch mockeado) → chip "7 oficiales", 14 badges "Oficial (API)" (7 tarjetas + 7 filas tabla), Claude→371 y Gemini→349 según el mock, borde+línea azul verificados por DOM y VLM.
+  * Ruta /api/count: validaciones 400 (proveedor/modelo/texto/key) probadas por curl; error 401 de Anthropic y 400→key inválida de Google mapeados a mensajes limpios.
+  * Historial: entradas con los números finales post-upgrade (34 modelos, "hace 1 minuto").
+- VLM: captura de éxito (insignias azules, chip "7 oficiales", línea superior azul ✓ sin problemas visuales) y captura de ajustes con scroll (switch + keys + escudo + "7 de 7" ✓). Lint 0/0, tsc 0 en src/. Capturas: qa6-byok-official-success.png, qa6-byok-settings.png, qa6-byok-settings-scrolled.png.
+
+Stage Summary — ENTREGA BYOK (FASE 3, PRIORIDAD 1 DEL ROADMAP)
+
+■ ESTADO ACTUAL DEL PROYECTO
+TokenLens completa fases 1-4 + catálogo oct-2026 + ahora el modo BYOK de fase 3: conteos OFICIALES 🔵 para Anthropic y Gemini con las keys del usuario (opt-in, keys solo en localStorage, proxy /api/count sin estado). Los tres niveles de insignia están vivos por fin: 🟢 Exacto (OpenAI local), 🔵 Oficial (BYOK Anthropic/Google), 🟡 Estimado (resto).
+
+■ OBJETIVOS, MODIFICACIONES Y VERIFICACIÓN
+- Objetivo: prioridad nº1 del roadmap (BYOK /api/count) + mandatos de estilo (chip animado, acentos azules, sección de ajustes pulida) y features (oficiales en historial/export/tabla, contadores vivos).
+- Modificaciones: 2 archivos nuevos (lib/byok.ts, app/api/count/route.ts, ByokStatus.tsx = 3), 7 modificados (store, SettingsPanel, page, ResultCard, Faq, HowItWorks, types).
+- Verificación: QA de 3 caminos (off/fallo/éxito), validaciones del proxy por curl, errores de proveedor mapeados, VLM en 2 capturas, lint 0/0, tsc 0, dev.log solo con POSTs esperados.
+
+■ PROBLEMAS SIN RESOLVER, RIESGOS Y PRIORIDADES DE LA PRÓXIMA FASE
+- Los ids de modelo Anthropic/Gemini se envían tal cual (claude-opus-5-5, gemini-3.1-pro): si el alias no existe en la API real, el error 404 se muestra claro al usuario (no se inventan alias no verificados).
+- BYOK no cubre análisis con imágenes (decisión documentada) ni proveedores sin endpoint de conteo (OpenAI ya es exacto local; Meta/Mistral/DeepSeek/xAI/Qwen no publican endpoint).
+- Precios: 27 modelos siguen null; EUR sin tipo de cambio.
+- Prioridades siguientes: 1) tokenizadores HF locales vía transformers.js (🟢 Exacto para Llama/DeepSeek/Qwen/Mistral); 2) i18n ES/EN real; 3) re-verificar precios desde páginas oficiales; 4) medición de latencia por modelo en la tabla.
+- Riesgo menor: duplicación de módulos por HMR de Turbopack en desarrollo (zustand) — recargar la página tras editar stores.

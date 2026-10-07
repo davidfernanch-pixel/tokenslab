@@ -16,13 +16,19 @@ const FAQS: FaqEntry[] = [
     value: "privacidad",
     question: "¿Mi archivo se sube a algún servidor?",
     answer:
-      "No. La extracción de texto (PDF, DOCX, XLSX…) y el conteo de tokens ocurren íntegramente en tu navegador usando Web Workers. Puedes desactivar la red y la herramienta seguirá funcionando. En el futuro, el modo Oficial (API) enviará el texto al proveedor que elijas usando tu propia API key, y se avisará claramente antes de hacerlo.",
+      "No. La extracción de texto (PDF, DOCX, XLSX…) y el conteo de tokens ocurren íntegramente en tu navegador usando Web Workers. Puedes desactivar la red y la herramienta seguirá funcionando. Única excepción documentada: si activas el modo BYOK, el TEXTO ya extraído se envía a la API del proveedor correspondiente con tu propia key para obtener el conteo oficial — siempre con la insignia azul visible.",
+  },
+  {
+    value: "byok",
+    question: "¿Qué es el conteo oficial (modo BYOK)?",
+    answer:
+      "BYOK (Bring Your Own Key): activas el modo en Ajustes, pegas tu API key de Anthropic o Google y, tras cada análisis, TokenLens consulta el endpoint público de conteo de tokens (count_tokens / countTokens) y sustituye la estimación 🟡 por el número oficial 🔵. Las keys viven solo en tu navegador (localStorage) y viajan únicamente al proveedor a través de un proxy sin estado que no las guarda. No funciona con imágenes (el conteo oficial solo cubre texto) y si una consulta falla, la tarjeta conserva su estimación.",
   },
   {
     value: "insignias",
     question: "¿Qué significa la insignia de cada resultado?",
     answer:
-      "Verde (Exacto): se ha ejecutado el tokenizador real en tu navegador. Azul (Oficial): conteo devuelto por la API del proveedor. Ámbar (Estimado): aproximación por ratio de caracteres ajustada por idioma y tipo de contenido. Actualmente OpenAI se cuenta en modo exacto y el resto en modo estimado.",
+      "Verde (Exacto): se ha ejecutado el tokenizador real en tu navegador (OpenAI). Azul (Oficial): conteo devuelto por la API del proveedor con tu key (Anthropic y Google en modo BYOK). Ámbar (Estimado): aproximación por ratio de caracteres ajustada por idioma y tipo de contenido (resto de modelos).",
   },
   {
     value: "precision-estimada",

@@ -103,7 +103,7 @@ export const PRECISION_META: Record<
     label: "Oficial (API)",
     short: "Oficial",
     description:
-      "Conteo oficial del proveedor vía API con tu propia key (modo BYOK, próximamente).",
+      "Conteo oficial devuelto por el endpoint del proveedor con tu propia key (modo BYOK).",
     dotClass: "bg-google",
   },
   estimated: {

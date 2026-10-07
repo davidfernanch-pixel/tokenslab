@@ -52,7 +52,7 @@ const PRECISION_LEVELS: PrecisionLevel[] = [
     dotClass: "bg-google",
     title: "Oficial (API)",
     description:
-      "Conteo oficial del proveedor vía API con tu propia key — modo BYOK en camino (insignia azul).",
+      "Conteo devuelto por la API del proveedor con tu propia key (modo BYOK, disponible en Ajustes — insignia azul).",
   },
   {
     dotClass: "bg-warning",

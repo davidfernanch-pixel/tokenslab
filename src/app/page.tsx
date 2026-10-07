@@ -12,6 +12,7 @@ import { CompareChart, type ChartDatum } from "@/components/CompareChart";
 import { ModelTable } from "@/components/ModelTable";
 import { ExportMenu } from "@/components/ExportMenu";
 import { SettingsPanel } from "@/components/SettingsPanel";
+import { ByokStatus } from "@/components/ByokStatus";
 import { OutputTokensControl } from "@/components/OutputTokensControl";
 import { TokenVisualizer } from "@/components/TokenVisualizer";
 import { OptimizerPanel } from "@/components/OptimizerPanel";
@@ -177,6 +178,7 @@ export default function Home() {
                     contando…
                   </span>
                 )}
+                <ByokStatus />
               </div>
               <div className="flex items-center gap-2">
                 <SettingsPanel />

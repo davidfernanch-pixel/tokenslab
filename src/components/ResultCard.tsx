@@ -92,8 +92,17 @@ export function ResultCard({
           fit.fits
             ? "border-border hover:border-primary/40 motion-safe:hover:shadow-primary/10"
             : "border-destructive/50 hover:border-destructive motion-safe:hover:shadow-destructive/10",
+          // conteo oficial (BYOK): acento azul permanente
+          result.precision === "official" &&
+            "border-google/30 motion-safe:hover:shadow-google/10",
         )}
       >
+        {result.precision === "official" && (
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-google"
+            aria-hidden
+          />
+        )}
         {!fit.fits && (
           <div
             className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-destructive"

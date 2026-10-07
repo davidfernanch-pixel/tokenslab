@@ -1,11 +1,23 @@
 "use client";
 
-import { Info, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { useState } from "react";
+import {
+  Eye,
+  EyeOff,
+  Info,
+  KeyRound,
+  RotateCcw,
+  ShieldCheck,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -32,7 +44,91 @@ import {
 import { PRECISION_META } from "@/lib/types";
 import { formatWindowCompact } from "@/lib/format";
 import { useTokenLens } from "@/lib/store";
+import { useByok, type ByokProvider } from "@/lib/byok";
 import { cn } from "@/lib/utils";
+
+/** Campo de API key con revelar/ocultar y borrado rápido. */
+function ApiKeyField({
+  provider,
+  label,
+  color,
+  disabled,
+}: {
+  provider: ByokProvider;
+  label: string;
+  color: string;
+  disabled: boolean;
+}) {
+  const value = useByok((s) => s.keys[provider]);
+  const setKey = useByok((s) => s.setKey);
+  const clearKey = useByok((s) => s.clearKey);
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div className="space-y-2">
+      <Label
+        htmlFor={`byok-${provider}`}
+        className="flex items-center gap-2 text-muted-foreground"
+      >
+        <span
+          className="h-2 w-2 rounded-full"
+          style={{ backgroundColor: color }}
+          aria-hidden
+        />
+        {label}
+      </Label>
+      <div className="relative">
+        <KeyRound
+          className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+          aria-hidden
+        />
+        <Input
+          id={`byok-${provider}`}
+          type={visible ? "text" : "password"}
+          autoComplete="off"
+          spellCheck={false}
+          placeholder={disabled ? "Desactivado" : `sk-ant-… / AIza…`}
+          value={value}
+          disabled={disabled}
+          onChange={(e) => setKey(provider, e.target.value)}
+          className="pr-20 pl-9 font-mono text-xs"
+        />
+        <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
+          {value && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label={visible ? "Ocultar key" : "Mostrar key"}
+              onClick={() => setVisible((v) => !v)}
+              disabled={disabled}
+            >
+              {visible ? (
+                <EyeOff className="h-3.5 w-3.5" />
+              ) : (
+                <Eye className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          )}
+          {value && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              aria-label="Borrar key"
+              onClick={() => clearKey(provider)}
+              disabled={disabled}
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function SettingsPanel() {
   const activeModels = useTokenLens((s) => s.activeModels);
@@ -41,10 +137,25 @@ export function SettingsPanel() {
   const setActiveModels = useTokenLens((s) => s.setActiveModels);
   const setCurrency = useTokenLens((s) => s.setCurrency);
 
+  const byokEnabled = useByok((s) => s.enabled);
+  const byokSetEnabled = useByok((s) => s.setEnabled);
+  const byokKeys = useByok((s) => s.keys);
+
   const groups = PROVIDER_ORDER.map((provider) => ({
     provider,
     models: MODELS.filter((m) => m.provider === provider),
   })).filter((g) => g.models.length > 0);
+
+  // Modelos activos que recibirían conteo oficial con la configuración actual
+  const upgradeable = MODELS.filter(
+    (m) =>
+      activeModels.includes(m.id) &&
+      m.tokenizer === "estimate" &&
+      (m.provider === "anthropic" || m.provider === "google"),
+  );
+  const byokReady = upgradeable.filter(
+    (m) => byokKeys[m.provider as "anthropic" | "google"]?.trim(),
+  ).length;
 
   return (
     <Sheet>
@@ -143,6 +254,73 @@ export function SettingsPanel() {
                 </section>
               );
             })}
+          </div>
+        </div>
+
+        {/* Conteo oficial (BYOK) */}
+        <div className="border-t border-border p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <Label
+                htmlFor="byok-switch"
+                className="flex items-center gap-2"
+              >
+                Conteo oficial (BYOK)
+                {byokEnabled && byokReady > 0 && (
+                  <span className="inline-flex items-center rounded-full border border-google/30 bg-google/10 px-1.5 py-px font-mono text-[9px] font-semibold uppercase tracking-wide text-google">
+                    activo
+                  </span>
+                )}
+              </Label>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Añade tus API keys de Anthropic y Google para sustituir la
+                estimación 🟡 por el conteo oficial 🔵 de sus APIs en cada
+                análisis.
+              </p>
+            </div>
+            <Switch
+              id="byok-switch"
+              checked={byokEnabled}
+              onCheckedChange={byokSetEnabled}
+              aria-label="Activar conteo oficial con tus API keys"
+            />
+          </div>
+
+          <div className="mt-4 space-y-4">
+            <ApiKeyField
+              provider="anthropic"
+              label="Anthropic API key"
+              color={PROVIDERS.anthropic.color}
+              disabled={!byokEnabled}
+            />
+            <ApiKeyField
+              provider="google"
+              label="Google AI Studio key"
+              color={PROVIDERS.google.color}
+              disabled={!byokEnabled}
+            />
+          </div>
+
+          <div className="mt-3 flex items-start gap-2 rounded-lg bg-surface-elevated p-3 text-xs leading-relaxed text-muted-foreground">
+            <ShieldCheck
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success"
+              aria-hidden
+            />
+            <p>
+              Las keys se guardan solo en este navegador y se envían
+              únicamente al proveedor a través de un proxy sin estado
+              (<code className="font-mono text-[10px]">/api/count</code>).
+              Nunca se almacenan ni se registran en el servidor.
+              {byokEnabled && (
+                <>
+                  {" "}
+                  <span className="text-foreground">
+                    {byokReady} de {upgradeable.length} modelos activos
+                    recibirán conteo oficial.
+                  </span>
+                </>
+              )}
+            </p>
           </div>
         </div>
 

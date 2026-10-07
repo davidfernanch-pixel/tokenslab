@@ -26,6 +26,23 @@ import { getFileStats } from "@/lib/stats";
 import { formatBytes } from "@/lib/format";
 import { estimateImageTokensForModel } from "@/lib/imageTokens";
 import { addHistoryEntry } from "@/lib/history";
+import {
+  fetchOfficialCount,
+  isByokCandidate,
+  byokKeyFor,
+  type ByokProvider,
+} from "@/lib/byok";
+
+/** Estado del modo BYOK durante un análisis */
+export interface ByokStatus {
+  phase: "idle" | "running" | "done";
+  /** modelos que pasaron de estimado a oficial */
+  upgraded: number;
+  /** modelos cuyo conteo oficial falló (mantienen la estimación) */
+  failed: number;
+  /** primer mensaje de error recibido, si lo hay */
+  error: string | null;
+}
 
 interface TokenLensState {
   // estado del análisis
@@ -44,6 +61,11 @@ interface TokenLensState {
   progress: Progress | null;
   /** el texto analizado parece código (pista para el optimizador) */
   codeHint: boolean;
+
+  // conteo oficial BYOK (por análisis)
+  byok: ByokStatus;
+  /** número de análisis: invalida upgrades BYOK obsoletos */
+  byokRun: number;
 
   // ajustes (persistidos)
   activeModels: string[];
@@ -110,6 +132,84 @@ export const useTokenLens = create<TokenLensState>()(
   persist(
     (set, get) => {
       /**
+       * Fase BYOK: tras el conteo local, pide el conteo OFICIAL a los
+       * proveedores con endpoint público (Anthropic y Google) cuando el
+       * usuario ha activado el modo y configurado su key.
+       *
+       * Reglas de honestidad:
+       * - Solo se aplica a modelos con tokenizer "estimate" de esos 2
+       *   proveedores.
+       * - Con imágenes en el análisis NO se aplica (el conteo oficial solo
+       *   cubre texto; mezclarlo con tokens de imagen estimados sería una
+       *   insignia engañosa).
+       * - Cada respuesta válida reemplaza el resultado al instante: la
+       *   tarjeta pasa de 🟡 Estimado a 🔵 Oficial en directo.
+       * - Un runId invalida los updates obsoletos si empieza otro análisis.
+       */
+      async function upgradeWithOfficialCounts(
+        text: string,
+        runId: number,
+      ): Promise<void> {
+        if (!text) return;
+        if (get().files.some((f) => f.kind === "image")) return;
+
+        // Solo modelos con resultado en este análisis (activos): evita
+        // llamadas API desperdiciadas por modelos ocultos en Ajustes.
+        const activeIds = new Set(get().activeModels);
+        const targets = MODELS.filter(
+          (m) => activeIds.has(m.id) && isByokCandidate(m),
+        );
+        if (targets.length === 0) {
+          set({ byok: { phase: "idle", upgraded: 0, failed: 0, error: null } });
+          return;
+        }
+
+        set({
+          byok: { phase: "running", upgraded: 0, failed: 0, error: null },
+        });
+
+        await Promise.all(
+          targets.map(async (model) => {
+            const provider = model.provider as ByokProvider;
+            const key = byokKeyFor(provider);
+            if (key == null) return;
+            const res = await fetchOfficialCount(
+              provider,
+              model.id,
+              text,
+              key,
+            );
+            set((state) => {
+              if (state.byokRun !== runId) return state;
+              if (res.ok) {
+                return {
+                  results: state.results.map((r) =>
+                    r.modelId === model.id
+                      ? { ...r, tokens: res.tokens, precision: "official" as const }
+                      : r,
+                  ),
+                  byok: { ...state.byok, upgraded: state.byok.upgraded + 1 },
+                };
+              }
+              return {
+                byok: {
+                  ...state.byok,
+                  failed: state.byok.failed + 1,
+                  error: state.byok.error ?? res.error,
+                },
+              };
+            });
+          }),
+        );
+
+        set((state) =>
+          state.byokRun === runId && state.byok.phase === "running"
+            ? { byok: { ...state.byok, phase: "done" } }
+            : state,
+        );
+      }
+
+      /**
        * Cuenta tokens de todos los archivos (texto por archivo + imágenes por
        * fórmula) y publica resultados progresivos durante el último archivo.
        */
@@ -124,6 +224,8 @@ export const useTokenLens = create<TokenLensState>()(
         const stats = getFileStats(text);
         const codeHint = textFiles.some((f) => f.code);
 
+        const runId = get().byokRun + 1;
+
         set({
           text,
           files,
@@ -137,6 +239,8 @@ export const useTokenLens = create<TokenLensState>()(
           error: null,
           results: [],
           progress: { phase: "count", label: "Contando tokens…", percent: 0 },
+          byok: { phase: "idle", upgraded: 0, failed: 0, error: null },
+          byokRun: runId,
         });
 
         const models = toCountModels(codeHint);
@@ -256,6 +360,13 @@ export const useTokenLens = create<TokenLensState>()(
             progress: { phase: "done", label: "Análisis completado", percent: 100 },
           });
 
+          // Fase BYOK: pedir conteos oficiales (Anthropic/Google) si el
+          // usuario lo ha activado. Los resultados se actualizan en directo
+          // (🟡 → 🔵) y el historial se escribe después, con los números
+          // finales.
+          await upgradeWithOfficialCounts(text, runId);
+          const finalResults = get().byokRun === runId ? get().results : collected;
+
           // Historial local (nunca sale del navegador)
           try {
             addHistoryEntry({
@@ -266,7 +377,7 @@ export const useTokenLens = create<TokenLensState>()(
               text,
               fileCount: files.length,
               imageCount: images.length,
-              results: collected.map((r) => ({
+              results: finalResults.map((r) => ({
                 modelId: r.modelId,
                 tokens: r.tokens,
                 precision: r.precision,
@@ -302,6 +413,9 @@ export const useTokenLens = create<TokenLensState>()(
         results: [],
         progress: null,
         codeHint: false,
+
+        byok: { phase: "idle", upgraded: 0, failed: 0, error: null },
+        byokRun: 0,
 
         activeModels: DEFAULT_ACTIVE_MODELS,
         outputTokens: 1024,
@@ -534,6 +648,8 @@ export const useTokenLens = create<TokenLensState>()(
             stats: null,
             results: [],
             progress: null,
+            byok: { phase: "idle", upgraded: 0, failed: 0, error: null },
+            byokRun: get().byokRun + 1,
           });
         },
 
