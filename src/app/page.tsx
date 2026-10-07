@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Info, Settings2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { Dropzone } from "@/components/Dropzone";
 import { FileStatsBar } from "@/components/FileStatsBar";
 import { ResultCard } from "@/components/ResultCard";
+import { ImageTokensCard } from "@/components/ImageTokensCard";
 import { CompareChart, type ChartDatum } from "@/components/CompareChart";
 import { ModelTable } from "@/components/ModelTable";
 import { ExportMenu } from "@/components/ExportMenu";
@@ -57,6 +58,22 @@ export default function Home() {
   const results = useTokenLens((s) => s.results);
   const activeModels = useTokenLens((s) => s.activeModels);
   const currency = useTokenLens((s) => s.currency);
+  const hasImageFiles = useTokenLens((s) =>
+    s.files.some((f) => f.kind === "image"),
+  );
+
+  // Desplazamiento suave al panel de resultados cuando termina un análisis
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const prevStatusRef = useRef(status);
+  useEffect(() => {
+    if (prevStatusRef.current !== "done" && status === "done") {
+      resultsRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+    prevStatusRef.current = status;
+  }, [status]);
 
   const activeResults = useMemo(
     () => selectActiveResults(results, activeModels),
@@ -131,11 +148,19 @@ export default function Home() {
         {/* ── Panel de resultados ──────────────────────────────────────── */}
         {showResults && (
           <section
+            ref={resultsRef}
             aria-label="Resultados del análisis"
             aria-live="polite"
-            className="mx-auto mt-10 w-full max-w-6xl px-4 pb-16 sm:px-6"
+            className="mx-auto mt-10 w-full max-w-6xl scroll-mt-20 px-4 pb-16 sm:px-6"
           >
             <FileStatsBar />
+
+            {/* Desglose de tokens de imagen (solo con imágenes) */}
+            {hasImageFiles && status !== "extracting" && (
+              <div className="mt-4">
+                <ImageTokensCard />
+              </div>
+            )}
 
             {/* Barra de acciones */}
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -232,8 +257,8 @@ export default function Home() {
             {/* Rejilla de tarjetas por modelo */}
             {validActiveModels.length > 0 && (
               <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {activeResults.map((result) => (
-                  <ResultCard key={result.modelId} result={result} />
+                {activeResults.map((result, index) => (
+                  <ResultCard key={result.modelId} result={result} index={index} />
                 ))}
                 {isCounting &&
                   Array.from({ length: Math.min(pendingCount, 3) }).map(

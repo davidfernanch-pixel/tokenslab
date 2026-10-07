@@ -26,10 +26,14 @@ function escCSV(value: string | number | boolean): string {
 }
 
 export function toCSV(p: ExportPayload): string {
+  const hasImages = p.rows.some(
+    (r) => r.result.imageTokens != null && r.result.imageTokens > 0,
+  );
   const header = [
     "modelo",
     "proveedor",
     "tokens",
+    ...(hasImages ? ["tokens_texto", "tokens_imagen"] : []),
     "precision",
     "ventana_contexto",
     "uso_ventana_%",
@@ -45,6 +49,9 @@ export function toCSV(p: ExportPayload): string {
         escCSV(r.model.name),
         escCSV(PROVIDERS[r.model.provider].label),
         r.result.tokens,
+        ...(hasImages
+          ? [r.result.textTokens ?? r.result.tokens, r.result.imageTokens ?? 0]
+          : []),
         r.result.precision,
         r.model.contextWindow,
         r.percent.toFixed(2).replace(".", ","),
@@ -73,6 +80,10 @@ export function toJSON(p: ExportPayload): string {
         id: r.model.id,
         proveedor: PROVIDERS[r.model.provider].label as Provider,
         tokens: r.result.tokens,
+        ...(r.result.textTokens != null ? { tokens_texto: r.result.textTokens } : {}),
+        ...(r.result.imageTokens != null
+          ? { tokens_imagen: r.result.imageTokens }
+          : {}),
         precision: r.result.precision,
         ventana_contexto: r.model.contextWindow,
         uso_ventana_pct: Number(r.percent.toFixed(2)),
@@ -91,6 +102,9 @@ export function toJSON(p: ExportPayload): string {
 }
 
 export function toMarkdown(p: ExportPayload): string {
+  const hasImages = p.rows.some(
+    (r) => r.result.imageTokens != null && r.result.imageTokens > 0,
+  );
   const lines: string[] = [];
   lines.push("# TokenLens — Resultados");
   lines.push("");
@@ -104,14 +118,32 @@ export function toMarkdown(p: ExportPayload): string {
     `- **Tokens de salida estimados:** ${p.outputTokens.toLocaleString("es-ES")}`,
   );
   lines.push("");
-  lines.push("| Modelo | Proveedor | Tokens | Ventana | Uso | ¿Cabe? |");
-  lines.push("| --- | --- | ---: | ---: | ---: | :---: |");
-  for (const r of p.rows) {
+  if (hasImages) {
     lines.push(
-      `| ${r.model.name} | ${PROVIDERS[r.model.provider].label} | ${r.result.tokens.toLocaleString("es-ES")} (${r.result.precision}) | ${r.model.contextWindow.toLocaleString("es-ES")} | ${r.percent.toFixed(1).replace(".", ",")} % | ${r.fits ? "Sí" : `No (excede en ${r.overflow.toLocaleString("es-ES")})`} |`,
+      "| Modelo | Proveedor | Tokens | Texto | Imagen | Ventana | Uso | ¿Cabe? |",
     );
+    lines.push("| --- | --- | ---: | ---: | ---: | ---: | ---: | :---: |");
+  } else {
+    lines.push("| Modelo | Proveedor | Tokens | Ventana | Uso | ¿Cabe? |");
+    lines.push("| --- | --- | ---: | ---: | ---: | :---: |");
+  }
+  for (const r of p.rows) {
+    const base = `| ${r.model.name} | ${PROVIDERS[r.model.provider].label} | ${r.result.tokens.toLocaleString("es-ES")} (${r.result.precision})`;
+    const tail = ` | ${r.model.contextWindow.toLocaleString("es-ES")} | ${r.percent.toFixed(1).replace(".", ",")} % | ${r.fits ? "Sí" : `No (excede en ${r.overflow.toLocaleString("es-ES")})`} |`;
+    if (hasImages) {
+      lines.push(
+        `${base} | ${(r.result.textTokens ?? r.result.tokens).toLocaleString("es-ES")} | ${(r.result.imageTokens ?? 0).toLocaleString("es-ES")}${tail}`,
+      );
+    } else {
+      lines.push(`${base}${tail}`);
+    }
   }
   lines.push("");
+  if (hasImages) {
+    lines.push(
+      "> Los tokens de imagen se estiman con las fórmulas públicas de cada proveedor (🟡 estimado).",
+    );
+  }
   lines.push(
     "> Precios pendientes de configurar (`TODO` en `models.config.ts`). Generado con TokenLens — procesamiento 100 % local.",
   );
@@ -119,11 +151,12 @@ export function toMarkdown(p: ExportPayload): string {
 }
 
 export function downloadBlob(
-  content: string,
+  content: string | Blob,
   filename: string,
-  mime: string,
+  mime?: string,
 ): void {
-  const blob = new Blob([content], { type: mime });
+  const blob =
+    content instanceof Blob ? content : new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

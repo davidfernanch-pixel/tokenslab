@@ -5,6 +5,10 @@
 
 import type { ExtractResult } from "@/lib/types";
 import { extractTextFile, isCodeExtension } from "./text";
+import { IMAGE_EXTENSIONS, isImageFile } from "./image";
+
+export { isImageFile };
+export { IMAGE_EXTENSIONS };
 
 const TEXT_EXTENSIONS = new Set([
   "txt", "md", "markdown", "csv", "tsv", "json", "geojson", "xml", "html",
@@ -25,14 +29,15 @@ export const SUPPORTED_EXTENSIONS = [
   "xlsx",
   "xlsm",
   "xls",
+  ...IMAGE_EXTENSIONS,
 ];
 
 /** valor para el atributo accept del input file */
 export const ACCEPT_ATTRIBUTE =
-  ".txt,.md,.markdown,.csv,.tsv,.json,.geojson,.xml,.html,.htm,.log,.yml,.yaml,.toml,.ini,.env,.cfg,.conf,.properties,.svg,.srt,.vtt,.js,.mjs,.cjs,.jsx,.ts,.tsx,.py,.rb,.go,.rs,.java,.c,.h,.cpp,.hpp,.cc,.cs,.php,.swift,.kt,.sql,.sh,.bash,.ps1,.css,.scss,.vue,.svelte,.dart,.lua,.r,.scala,.pl,.pdf,.docx,.xlsx,.xlsm,.xls";
+  ".txt,.md,.markdown,.csv,.tsv,.json,.geojson,.xml,.html,.htm,.log,.yml,.yaml,.toml,.ini,.env,.cfg,.conf,.properties,.svg,.srt,.vtt,.js,.mjs,.cjs,.jsx,.ts,.tsx,.py,.rb,.go,.rs,.java,.c,.h,.cpp,.hpp,.cc,.cs,.php,.swift,.kt,.sql,.sh,.bash,.ps1,.css,.scss,.vue,.svelte,.dart,.lua,.r,.scala,.pl,.pdf,.docx,.xlsx,.xlsm,.xls,.png,.jpg,.jpeg,.webp,.gif,.avif";
 
 export const SUPPORTED_FORMATS_HINT =
-  "TXT · MD · CSV · JSON · XML · HTML · LOG · código (JS, TS, PY, JAVA…) · PDF · DOCX · XLSX";
+  "TXT · MD · CSV · JSON · XML · HTML · LOG · código (JS, TS, PY, JAVA…) · PDF · DOCX · XLSX · PNG · JPG · WEBP · GIF";
 
 export function getExtension(fileName: string): string {
   const parts = fileName.toLowerCase().split(".");
@@ -40,6 +45,7 @@ export function getExtension(fileName: string): string {
 }
 
 export function isSupportedFile(file: File): boolean {
+  if (isImageFile(file)) return true;
   const ext = getExtension(file.name);
   if (ext === "pdf" || ext === "docx" || ext === "xlsx" || ext === "xlsm" || ext === "xls") {
     return true;

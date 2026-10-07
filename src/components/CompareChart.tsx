@@ -34,7 +34,7 @@ function ChartTooltip({ active, payload, label }: ChartTooltipProps) {
   const datum = payload[0]?.payload;
   if (!datum) return null;
   return (
-    <div className="rounded-lg border border-border bg-popover p-3 shadow-md">
+    <div className="rounded-lg border border-border bg-popover p-3 shadow-lg">
       <p className="text-xs font-semibold">{label ?? datum.name}</p>
       <p className="text-[11px] text-muted-foreground">
         {PROVIDERS[datum.provider].label}
@@ -94,6 +94,30 @@ export function CompareChart({ data }: { data: ChartDatum[] }) {
               margin={{ top: 4, right: 48, bottom: 4, left: 4 }}
               barCategoryGap="24%"
             >
+              {/* Degradado horizontal por proveedor: base opaca → punta difuminada */}
+              <defs>
+                {legendProviders.map((provider) => (
+                  <linearGradient
+                    key={provider}
+                    id={`grad-${provider}`}
+                    x1="0"
+                    y1="0"
+                    x2="1"
+                    y2="0"
+                  >
+                    <stop
+                      offset="0%"
+                      stopColor={PROVIDERS[provider].color}
+                      stopOpacity={0.9}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor={PROVIDERS[provider].color}
+                      stopOpacity={0.35}
+                    />
+                  </linearGradient>
+                ))}
+              </defs>
               <CartesianGrid
                 horizontal={false}
                 stroke="var(--border)"
@@ -125,7 +149,7 @@ export function CompareChart({ data }: { data: ChartDatum[] }) {
               />
               <Bar dataKey="tokens" radius={[0, 6, 6, 0]} minPointSize={3}>
                 {sorted.map((d) => (
-                  <Cell key={d.id} fill={PROVIDERS[d.provider].color} />
+                  <Cell key={d.id} fill={`url(#grad-${d.provider})`} />
                 ))}
                 <LabelList
                   dataKey="tokens"

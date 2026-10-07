@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
+  FilePlus2,
+  Files,
   FileText,
   FileUp,
   Loader2,
@@ -20,8 +22,12 @@ import { PasteDialog } from "@/components/PasteDialog";
 import { useTokenLens } from "@/lib/store";
 import { ACCEPT_ATTRIBUTE, SUPPORTED_FORMATS_HINT } from "@/lib/extractors";
 import { SAMPLE_TEXT } from "@/lib/sample";
+import { MAX_FILES } from "@/lib/types";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+/** cómo tratar los archivos elegidos respecto al análisis actual */
+type PickerMode = "replace" | "add";
 
 export function Dropzone() {
   const status = useTokenLens((s) => s.status);
@@ -29,34 +35,45 @@ export function Dropzone() {
   const warning = useTokenLens((s) => s.warning);
   const fileName = useTokenLens((s) => s.fileName);
   const fileSize = useTokenLens((s) => s.fileSize);
+  const files = useTokenLens((s) => s.files);
   const progress = useTokenLens((s) => s.progress);
-  const analyzeFile = useTokenLens((s) => s.analyzeFile);
+  const analyzeFiles = useTokenLens((s) => s.analyzeFiles);
   const analyzeText = useTokenLens((s) => s.analyzeText);
   const reset = useTokenLens((s) => s.reset);
 
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // El mismo input oculto sirve para "Cambiar archivo" y "Añadir más":
+  // se recuerda el modo justo antes de abrir el selector.
+  const pickerModeRef = useRef<PickerMode>("replace");
 
   const isBusy = status === "extracting" || status === "counting";
   const isDone = status === "done" && fileName != null;
+  const isMulti = isDone && files.length > 1;
+  const imageCount = files.filter((f) => f.kind === "image").length;
 
-  function openPicker() {
+  function openPicker(mode: PickerMode) {
+    pickerModeRef.current = mode;
     fileInputRef.current?.click();
   }
+
+  // Clic en la zona: con un lote ya analizado se añade; en el resto de
+  // casos se empieza de cero (coincide con el botón primario visible).
+  const zonePickerMode: PickerMode = isMulti ? "add" : "replace";
 
   return (
     <div>
       <div
         role="button"
         tabIndex={0}
-        aria-label="Subir un archivo para analizar sus tokens"
-        onClick={() => openPicker()}
+        aria-label="Subir archivos para analizar sus tokens"
+        onClick={() => openPicker(zonePickerMode)}
         onKeyDown={(e) => {
           // Solo cuando el foco está en la propia zona (no en botones internos).
           if (e.target !== e.currentTarget) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            openPicker();
+            openPicker(zonePickerMode);
           }
         }}
         onDragOver={(e) => {
@@ -75,8 +92,11 @@ export function Dropzone() {
         onDrop={(e) => {
           e.preventDefault();
           setIsDragging(false);
-          const file = e.dataTransfer.files[0];
-          if (file) void analyzeFile(file);
+          const dropped = Array.from(e.dataTransfer.files);
+          // Si ya hay un análisis en curso, lo soltado se añade al lote.
+          if (dropped.length > 0) {
+            void analyzeFiles(dropped, files.length > 0 ? "add" : "replace");
+          }
         }}
         className={cn(
           "group relative flex min-h-[280px] flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all duration-300 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 md:p-12",
@@ -91,12 +111,15 @@ export function Dropzone() {
         <input
           ref={fileInputRef}
           type="file"
+          multiple
           accept={ACCEPT_ATTRIBUTE}
           aria-hidden
           className="hidden"
           onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void analyzeFile(file);
+            const selected = Array.from(e.target.files ?? []);
+            if (selected.length > 0) {
+              void analyzeFiles(selected, pickerModeRef.current);
+            }
             e.target.value = "";
           }}
         />
@@ -134,33 +157,70 @@ export function Dropzone() {
             >
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <FileText className="h-5 w-5 text-primary" />
+                  {isMulti ? (
+                    <Files className="h-5 w-5 text-primary" />
+                  ) : (
+                    <FileText className="h-5 w-5 text-primary" />
+                  )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{fileName}</p>
-                  <p className="font-mono text-xs tabular-nums text-muted-foreground">
-                    {fileSize != null ? formatBytes(fileSize) : ""}
-                    {status === "done" ? " · análisis completado" : ""}
-                  </p>
+                  {isMulti ? (
+                    <>
+                      <p className="text-sm font-medium">
+                        {files.length} archivos
+                      </p>
+                      <p className="font-mono text-xs tabular-nums text-muted-foreground">
+                        {fileSize != null ? formatBytes(fileSize) : ""}
+                        {" · análisis completado"}
+                        {imageCount > 0
+                          ? ` · ${imageCount} ${imageCount === 1 ? "imagen" : "imágenes"}`
+                          : ""}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="truncate text-sm font-medium">{fileName}</p>
+                      <p className="font-mono text-xs tabular-nums text-muted-foreground">
+                        {fileSize != null ? formatBytes(fileSize) : ""}
+                        {status === "done" ? " · análisis completado" : ""}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openPicker();
-                  }}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Cambiar archivo
-                </Button>
+                {isMulti ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openPicker("add");
+                    }}
+                  >
+                    <FilePlus2 className="h-4 w-4" />
+                    Añadir más
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openPicker("replace");
+                    }}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Cambiar archivo
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-10 w-10"
-                  aria-label="Quitar archivo"
+                  aria-label={
+                    isMulti ? "Quitar todos los archivos" : "Quitar archivo"
+                  }
                   onClick={(e) => {
                     e.stopPropagation();
                     reset();
@@ -190,10 +250,13 @@ export function Dropzone() {
                 <FileUp className="h-6 w-6 text-white" />
               </div>
               <h2 className="mt-5 text-xl font-semibold sm:text-2xl">
-                Arrastra tu archivo aquí
+                Arrastra tus archivos aquí
               </h2>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                o haz clic para seleccionarlo
+                o haz clic para seleccionarlos
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Puedes analizar hasta {MAX_FILES} archivos a la vez
               </p>
               <div className="mt-4 flex max-w-md flex-wrap items-center justify-center gap-1.5">
                 {SUPPORTED_FORMATS_HINT.split(" · ").map((format) => (

@@ -175,3 +175,37 @@
     animation: none;
   }
 }
+
+/* ─── Pulido visual Fase 4 (Task 4-d) — utilidades aditivas ─── */
+/* Flotación vertical lenta (±6 px) para detalles decorativos (p. ej. el
+   resplandor del hero). Ciclo simétrico 0→-6→0, sin salto al repetir. */
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-float-y {
+  animation: float-y 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-y {
+    animation: none;
+  }
+}
+
+/* Texto con degradado violeta de marca (90°, primary → #9479FF).
+   Se usa var(--primary) porque @theme inline no emite --color-primary
+   como variable CSS real (ver Task 3-c): el token raíz es consciente
+   del tema y cambia solo en oscuro/claro. */
+.text-gradient-violet {
+  background-image: linear-gradient(90deg, var(--primary), #9479ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}

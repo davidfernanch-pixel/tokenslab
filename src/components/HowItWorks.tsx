@@ -87,10 +87,13 @@ export function HowItWorks() {
         {/* Pasos */}
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           {STEPS.map((step) => (
-            <Card key={step.number} className="rounded-xl border-border bg-card">
+            <Card
+              key={step.number}
+              className="rounded-xl border-border bg-card motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-1 hover:border-primary/30"
+            >
               <CardContent className="flex h-full flex-col">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-sm font-semibold tabular-nums text-primary">
+                  <span className="text-gradient-violet font-mono text-sm font-semibold tabular-nums">
                     {step.number}
                   </span>
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">

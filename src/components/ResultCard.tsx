@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Info, X } from "lucide-react";
+import { Check, Image as ImageIcon, ImageOff, Info, Type, X } from "lucide-react";
 
 import { PrecisionBadge } from "@/components/PrecisionBadge";
 import {
@@ -27,13 +27,33 @@ import { cn } from "@/lib/utils";
 const PRICE_TODO_HINT =
   "Precios pendientes: rellena priceInPerM/priceOutPerM en models.config.ts con valores de las páginas oficiales.";
 
-export function ResultCard({ result }: { result: ModelResult }) {
+const IMAGE_ESTIMATE_HINT =
+  "tokens de imagen estimados por fórmula pública";
+const NO_VISION_HINT =
+  "Este modelo no admite imágenes: solo se cuentan los tokens del texto.";
+
+export function ResultCard({
+  result,
+  index = 0,
+}: {
+  result: ModelResult;
+  /** posición en la rejilla (escalona la animación de entrada) */
+  index?: number;
+}) {
   const outputTokens = useTokenLens((s) => s.outputTokens);
   const currency = useTokenLens((s) => s.currency);
+  const hasImages = useTokenLens((s) =>
+    s.files.some((f) => f.kind === "image"),
+  );
   const animated = useAnimatedNumber(result.tokens);
 
   const model = getModel(result.modelId);
   if (!model) return null;
+
+  // desglose texto/imagen: presente cuando el análisis incluye imágenes y el
+  // modelo tiene visión (el número grande sigue siendo el TOTAL)
+  const { imageTokens } = result;
+  const textTokens = result.textTokens ?? 0;
 
   const fit = fitsContext(result.tokens, model);
   const cost = calcCost(result.tokens, outputTokens, model, currency);
@@ -59,7 +79,11 @@ export function ResultCard({ result }: { result: ModelResult }) {
       className="h-full"
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
+      transition={{
+        duration: 0.35,
+        ease: "easeOut",
+        delay: Math.min(index * 0.045, 0.4),
+      }}
     >
       <div
         className={cn(
@@ -109,6 +133,31 @@ export function ResultCard({ result }: { result: ModelResult }) {
           </span>
           <span className="text-sm text-muted-foreground">tokens</span>
         </div>
+
+        {/* Desglose texto · imagen (solo con imágenes y modelo con visión) */}
+        {imageTokens != null && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+            <Type className="h-3 w-3 shrink-0" aria-hidden />
+            <span>
+              Texto{" "}
+              <span className="font-mono font-medium tabular-nums">
+                {formatNumber(textTokens)}
+              </span>
+            </span>
+            <span aria-hidden>·</span>
+            <ImageIcon className="h-3 w-3 shrink-0" aria-hidden />
+            <span className="inline-flex items-center gap-1">
+              Imagen{" "}
+              <span className="font-mono font-medium tabular-nums">
+                {formatNumber(imageTokens)}
+              </span>
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-warning"
+                title={IMAGE_ESTIMATE_HINT}
+              />
+            </span>
+          </div>
+        )}
 
         {/* Barra de uso de la ventana */}
         <div className="mt-4 flex items-center justify-between text-xs">
@@ -177,19 +226,30 @@ export function ResultCard({ result }: { result: ModelResult }) {
         </div>
 
         {/* Pie */}
-        <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-          {fit.fits ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
-              <Check className="h-3 w-3" />
-              Cabe
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-              <X className="h-3 w-3" />
-              No cabe · +{formatCompact(fit.overflow)}
-            </span>
-          )}
-          <span className="font-mono text-[10px] text-muted-foreground">
+        <div className="mt-4 flex items-center justify-between gap-2 border-t border-border pt-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            {fit.fits ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
+                <Check className="h-3 w-3" />
+                Cabe
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                <X className="h-3 w-3" />
+                No cabe · +{formatCompact(fit.overflow)}
+              </span>
+            )}
+            {hasImages && !model.vision && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+                title={NO_VISION_HINT}
+              >
+                <ImageOff className="h-3 w-3" aria-hidden />
+                No admite imágenes
+              </span>
+            )}
+          </div>
+          <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
             {formatMs(result.ms)}
           </span>
         </div>

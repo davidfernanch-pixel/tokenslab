@@ -4,7 +4,9 @@ import { MODELS } from "@/lib/models.config";
 
 /**
  * Hero de la portada: mensaje de privacidad, titular con gradiente de marca
- * y chips de confianza. La zona de subida la coloca la página debajo.
+ * en la palabra clave, chips de confianza con tiles de icono y un
+ * resplandor violeta flotante detrás del contenido. La zona de subida la
+ * coloca la página debajo.
  */
 export function Hero() {
   return (
@@ -12,6 +14,11 @@ export function Hero() {
       <div
         className="grid-pattern absolute inset-0 opacity-70"
         aria-hidden="true"
+      />
+      {/* Resplandor violeta flotante tras la insignia y el titular */}
+      <div
+        aria-hidden="true"
+        className="animate-float-y pointer-events-none absolute inset-x-0 top-14 mx-auto h-56 w-80 rounded-full bg-primary/10 blur-3xl sm:top-16 sm:h-64 sm:w-[30rem]"
       />
       <div
         aria-hidden="true"
@@ -26,11 +33,13 @@ export function Hero() {
 
         {/* Titular */}
         <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-          ¿Cuántos tokens es tu texto{" "}
+          ¿Cuántos{" "}
+          <span className="bg-gradient-to-r from-primary via-[#9479FF] to-primary bg-clip-text text-transparent">
+            tokens
+          </span>{" "}
+          es tu texto{" "}
           <br className="hidden sm:block" />
-          <span className="bg-gradient-to-r from-[#7C5CFF] to-[#9479FF] bg-clip-text text-transparent">
-            en cada modelo de IA?
-          </span>
+          en cada modelo de IA?
         </h1>
 
         {/* Subtítulo */}
@@ -42,23 +51,32 @@ export function Hero() {
         </p>
 
         {/* Chips de confianza */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            <ShieldCheck
-              className="h-3.5 w-3.5 text-primary"
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10"
               aria-hidden="true"
-            />
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+            </span>
             Procesamiento 100 % local
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Zap className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10"
+              aria-hidden="true"
+            >
+              <Zap className="h-3.5 w-3.5 text-primary" />
+            </span>
             Resultados al instante
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <BarChart3
-              className="h-3.5 w-3.5 text-primary"
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10"
               aria-hidden="true"
-            />
+            >
+              <BarChart3 className="h-3.5 w-3.5 text-primary" />
+            </span>
             <span>
               <span className="font-mono tabular-nums">{MODELS.length}</span>{" "}
               modelos ·{" "}

@@ -227,7 +227,7 @@ export function ModelTable({
               return (
                 <TableRow
                   key={row.model.id}
-                  className="border-b border-border transition-colors hover:bg-muted/40"
+                  className="odd:bg-muted/20 border-b border-border transition-colors hover:bg-muted/40"
                 >
                   <TableCell className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
@@ -253,19 +253,31 @@ export function ModelTable({
                     </span>
                   </TableCell>
                   <TableCell className="whitespace-nowrap px-4 py-3 text-right font-mono tabular-nums">
-                    <span className="inline-flex items-center justify-end gap-2">
-                      <span
-                        className={cn(
-                          !row.fit.fits && "font-semibold text-destructive",
-                        )}
-                      >
-                        {formatNumber(row.result.tokens)}
+                    <div className="flex flex-col items-end">
+                      <span className="inline-flex items-center justify-end gap-2">
+                        <span
+                          className={cn(
+                            !row.fit.fits && "font-semibold text-destructive",
+                          )}
+                        >
+                          {formatNumber(row.result.tokens)}
+                        </span>
+                        <PrecisionBadge
+                          precision={row.result.precision}
+                          size="sm"
+                        />
                       </span>
-                      <PrecisionBadge
-                        precision={row.result.precision}
-                        size="sm"
-                      />
-                    </span>
+                      {row.result.imageTokens != null && (
+                        <span className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
+                          texto{" "}
+                          {formatNumber(
+                            row.result.textTokens ??
+                              row.result.tokens - row.result.imageTokens,
+                          )}{" "}
+                          + img {formatNumber(row.result.imageTokens)}
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap px-4 py-3 text-right font-mono tabular-nums">
                     {formatWindow(row.model.contextWindow)}

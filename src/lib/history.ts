@@ -20,6 +20,10 @@ export interface HistoryResult {
   modelId: string;
   tokens: number;
   precision: Precision;
+  /** tokens de texto (sin imágenes), si el análisis incluía imágenes */
+  textTokens?: number;
+  /** tokens de imagen estimados, si el análisis incluía imágenes */
+  imageTokens?: number;
 }
 
 export interface HistoryEntry {
@@ -34,6 +38,10 @@ export interface HistoryEntry {
   results: HistoryResult[];
   hasText: boolean;
   text?: string;
+  /** nº de archivos del análisis (multiarchivo) */
+  fileCount?: number;
+  /** nº de imágenes del análisis */
+  imageCount?: number;
 }
 
 function isEntry(v: unknown): v is HistoryEntry {
@@ -81,6 +89,8 @@ export interface AddEntryInput {
   stats: FileStats;
   text: string;
   results: HistoryResult[];
+  fileCount?: number;
+  imageCount?: number;
 }
 
 /** Añade una entrada (la más reciente primero) y recorta a MAX_HISTORY. */
@@ -99,6 +109,8 @@ export function addHistoryEntry(input: AddEntryInput): HistoryEntry[] {
     results: input.results,
     hasText: input.text.length <= MAX_STORED_TEXT,
     ...(input.text.length <= MAX_STORED_TEXT ? { text: input.text } : {}),
+    ...(input.fileCount != null ? { fileCount: input.fileCount } : {}),
+    ...(input.imageCount != null ? { imageCount: input.imageCount } : {}),
   };
   // Deduplicado simple: mismo nombre + mismo tamaño + mismos tokens → reemplaza
   const prev = loadHistory();

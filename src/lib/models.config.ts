@@ -49,6 +49,8 @@ export interface ModelConfig {
   priceOutPerM: number | null;
   /** caracteres por token aprox. para el modo estimado (texto en inglés) */
   estimateRatio?: number;
+  /** el modelo admite imágenes (tokens de imagen estimados por fórmula) */
+  vision?: boolean;
   enabledByDefault: boolean;
 }
 
@@ -96,6 +98,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 4.0,
+    vision: true,
     enabledByDefault: true,
   },
   {
@@ -108,6 +111,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 4.0,
+    vision: true,
     enabledByDefault: true,
   },
   {
@@ -120,6 +124,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 4.1,
+    vision: true,
     enabledByDefault: true,
   },
   {
@@ -132,6 +137,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 4.0,
+    vision: true,
     enabledByDefault: true,
   },
   {
@@ -144,6 +150,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 4.0,
+    vision: true,
     enabledByDefault: false,
   },
   {
@@ -156,6 +163,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.8,
+    vision: true,
     enabledByDefault: false,
   },
   {
@@ -182,6 +190,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.6,
+    vision: true,
     enabledByDefault: false,
   },
   {
@@ -194,6 +203,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.6,
+    vision: true,
     enabledByDefault: true,
   },
   {
@@ -206,6 +216,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.6,
+    vision: true,
     enabledByDefault: true,
   },
 
@@ -220,6 +231,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 4.0,
+    vision: true,
     enabledByDefault: true,
   },
   {
@@ -232,6 +244,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 4.0,
+    vision: true,
     enabledByDefault: true,
   },
 
@@ -246,6 +259,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.7,
+    vision: true,
     enabledByDefault: true,
   },
   {
@@ -258,6 +272,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 3.7,
+    vision: true,
     enabledByDefault: false,
   },
   {
@@ -336,6 +351,7 @@ export const MODELS: ModelConfig[] = [
     priceInPerM: null,
     priceOutPerM: null,
     estimateRatio: 4.0,
+    vision: true,
     enabledByDefault: true,
   },
   {

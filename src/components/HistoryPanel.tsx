@@ -5,6 +5,7 @@ import {
   ChevronDown,
   FileText,
   FolderOpen,
+  GitCompareArrows,
   History,
   RotateCcw,
   Trash2,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { CompareDialog } from "@/components/CompareDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,14 +73,18 @@ function HistoryRow({
   entry,
   now,
   expanded,
+  compareSelected,
   onToggle,
+  onToggleCompare,
   onRestore,
   onDelete,
 }: {
   entry: HistoryEntry;
   now: number;
   expanded: boolean;
+  compareSelected: boolean;
   onToggle: () => void;
+  onToggleCompare: () => void;
   onRestore: () => void;
   onDelete: () => void;
 }) {
@@ -138,6 +144,27 @@ function HistoryRow({
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-8 w-8 border border-transparent",
+              compareSelected
+                ? "border-primary/30 bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            onClick={onToggleCompare}
+            aria-pressed={compareSelected}
+            aria-label={`Seleccionar ${entry.name} para comparar`}
+            title={
+              compareSelected
+                ? "Quitar de la comparación"
+                : "Seleccionar para comparar"
+            }
+          >
+            <GitCompareArrows className="h-3.5 w-3.5" />
+          </Button>
           {entry.hasText ? (
             <Button
               type="button"
@@ -231,15 +258,44 @@ export function HistoryPanel() {
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // Selección para comparar (máx. 2; el orden de selección define A y B)
+  const [selected, setSelected] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   // Se recarga en cada apertura: el diálogo siempre refleja localStorage.
   useEffect(() => {
     if (open) setEntries(loadHistory());
   }, [open]);
 
+  // Entradas seleccionadas que siguen existiendo (ids recortados del histórico
+  // se ignoran sin perder el orden de selección).
+  const compareEntries = selected
+    .map((id) => entries.find((e) => e.id === id))
+    .filter((e): e is HistoryEntry => e !== undefined);
+  const compareCount = compareEntries.length;
+  const entryA = compareEntries[0] ?? null;
+  const entryB = compareEntries[1] ?? null;
+
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (!next) setExpandedId(null);
+  }
+
+  function toggleCompare(id: string) {
+    const isSelected = selected.includes(id);
+    // Un tercer análisis reemplaza al más antiguo: siempre quedan los 2 últimos
+    if (!isSelected && selected.length >= 2) {
+      toast.info("Selección actualizada: se comparan los dos últimos análisis");
+    }
+    setSelected((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return [prev[prev.length - 1], id];
+      return [...prev, id];
+    });
+  }
+
+  function clearSelection() {
+    setSelected([]);
   }
 
   function handleRestore(entry: HistoryEntry) {
@@ -252,101 +308,166 @@ export function HistoryPanel() {
   function handleDelete(id: string) {
     setEntries(removeHistoryEntry(id));
     if (expandedId === id) setExpandedId(null);
+    setSelected((prev) => prev.filter((x) => x !== id));
   }
 
   function handleClear() {
     setEntries(clearHistory());
     setExpandedId(null);
+    setSelected([]);
     toast.success("Historial vaciado");
   }
 
   const now = Date.now();
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" aria-label="Ver historial local">
-          <History className="h-4 w-4" />
-          <span className="hidden sm:inline">Historial</span>
-        </Button>
-      </DialogTrigger>
-
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Historial local</DialogTitle>
-          <DialogDescription>
-            Tus últimos análisis, guardados solo en tu navegador. Nunca se
-            envían a ningún servidor.
-          </DialogDescription>
-        </DialogHeader>
-
-        {entries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-            <div className="rounded-xl bg-surface-elevated p-3 text-muted-foreground">
-              <FolderOpen className="h-6 w-6" />
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>
+          <Button variant="outline" aria-label="Ver historial local">
+            <History className="h-4 w-4" />
+            <span className="hidden sm:inline">Historial</span>
+          </Button>
+        </DialogTrigger>
+  
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Historial local</DialogTitle>
+            <DialogDescription>
+              Tus últimos análisis, guardados solo en tu navegador. Nunca se
+              envían a ningún servidor.
+            </DialogDescription>
+          </DialogHeader>
+  
+          {entries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+              <div className="rounded-xl bg-surface-elevated p-3 text-muted-foreground">
+                <FolderOpen className="h-6 w-6" />
+              </div>
+              <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
+                Aún no hay análisis guardados. Analiza un archivo o texto y
+                aparecerá aquí.
+              </p>
             </div>
-            <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Aún no hay análisis guardados. Analiza un archivo o texto y
-              aparecerá aquí.
-            </p>
-          </div>
-        ) : (
-          <div className="custom-scrollbar max-h-[60vh] space-y-2 overflow-y-auto pr-1">
-            {entries.map((entry) => (
-              <HistoryRow
-                key={entry.id}
-                entry={entry}
-                now={now}
-                expanded={expandedId === entry.id}
-                onToggle={() =>
-                  setExpandedId((prev) =>
-                    prev === entry.id ? null : entry.id,
-                  )
-                }
-                onRestore={() => handleRestore(entry)}
-                onDelete={() => handleDelete(entry.id)}
-              />
-            ))}
-          </div>
-        )}
-
-        <DialogFooter className="items-center gap-3 sm:justify-between">
-          <p className="text-xs text-muted-foreground">
-            Máximo {MAX_HISTORY} análisis · Se guarda el texto solo si pesa
-            menos de {MAX_STORED_TEXT / 1024} KB.
-          </p>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={entries.length === 0}
-                className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Vaciar historial
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>¿Vaciar el historial?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta acción no se puede deshacer.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleClear}
-                  className="bg-destructive text-white shadow-xs hover:bg-destructive/90"
+          ) : (
+            <div className="custom-scrollbar max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+              {entries.map((entry) => (
+                <HistoryRow
+                  key={entry.id}
+                  entry={entry}
+                  now={now}
+                  expanded={expandedId === entry.id}
+                  compareSelected={selected.includes(entry.id)}
+                  onToggle={() =>
+                    setExpandedId((prev) =>
+                      prev === entry.id ? null : entry.id,
+                    )
+                  }
+                  onToggleCompare={() => toggleCompare(entry.id)}
+                  onRestore={() => handleRestore(entry)}
+                  onDelete={() => handleDelete(entry.id)}
+                />
+              ))}
+            </div>
+          )}
+  
+          {entries.length > 0 && compareCount > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-surface-elevated/50 px-3 py-2">
+              <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                <GitCompareArrows
+                  className="h-3.5 w-3.5 shrink-0 text-primary"
+                  aria-hidden
+                />
+                {compareCount === 2 ? (
+                  <span className="min-w-0 truncate">
+                    <span className="font-medium text-foreground">
+                      {entryA?.name}
+                    </span>
+                    {" vs "}
+                    <span className="font-medium text-foreground">
+                      {entryB?.name}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="truncate">
+                    Selecciona 2 análisis para comparar
+                  </span>
+                )}
+              </p>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={clearSelection}
                 >
-                  Vaciar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+                  Limpiar
+                </Button>
+                {compareCount === 2 ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setCompareOpen(true)}
+                  >
+                    Comparar (2)
+                  </Button>
+                ) : (
+                  <Button type="button" variant="outline" size="sm" disabled>
+                    Comparar ({compareCount}/2)
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+  
+          <DialogFooter className="items-center gap-3 sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              Máximo {MAX_HISTORY} análisis · Se guarda el texto solo si pesa
+              menos de {MAX_STORED_TEXT / 1024} KB · Compara dos análisis
+            </p>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={entries.length === 0}
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Vaciar historial
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Vaciar el historial?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClear}
+                    className="bg-destructive text-white shadow-xs hover:bg-destructive/90"
+                  >
+                    Vaciar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de comparación como hermano del principal (no anidado dentro
+          del DialogContent): portal propio de Radix sin conflictos de foco. */}
+      <CompareDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        entryA={entryA}
+        entryB={entryB}
+      />
+    </>
   );
 }

@@ -1,3 +1,5 @@
+import { ShieldCheck } from "lucide-react";
+
 import { PROVIDERS, PROVIDER_ORDER } from "@/lib/models.config";
 
 /**
@@ -7,7 +9,12 @@ import { PROVIDERS, PROVIDER_ORDER } from "@/lib/models.config";
  */
 export function Footer() {
   return (
-    <footer className="mt-auto border-t border-border bg-card/50">
+    <footer className="mt-auto bg-card/50">
+      {/* Línea de luz superior con degradado de marca */}
+      <div
+        aria-hidden="true"
+        className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent"
+      />
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <div className="grid gap-8 md:grid-cols-[1.5fr_1fr_1fr]">
           {/* Marca */}
@@ -33,9 +40,12 @@ export function Footer() {
               </span>
             </div>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Calculadora de tokens multi-IA. Procesamiento 100 % local, sin
-              registro y sin subidas.
+              Calculadora de tokens multi-IA, sin registro y sin subidas.
             </p>
+            <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+              Procesamiento 100 % local
+            </span>
           </div>
 
           {/* Precisión */}

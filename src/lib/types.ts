@@ -18,7 +18,41 @@ export interface ModelResult {
   precision: Precision;
   /** ms que tardó el conteo */
   ms: number;
+  /** tokens del texto (sin imágenes); presente cuando el análisis incluye imágenes */
+  textTokens?: number;
+  /** tokens de imagen estimados por fórmula; presente en modelos con visión si hay imágenes */
+  imageTokens?: number;
 }
+
+/** Metadatos de una imagen analizada en local */
+export interface ImageInfo {
+  width: number;
+  height: number;
+  mime: string;
+}
+
+/** Un archivo del análisis en curso (texto extraído o imagen) */
+export interface AnalyzedFile {
+  id: string;
+  name: string;
+  sizeBytes: number;
+  kind: "text" | "image";
+  /** texto extraído (archivos de texto) */
+  text?: string;
+  /** información de imagen (archivos de imagen) */
+  imageInfo?: ImageInfo;
+  /** URL de previsualización en memoria (solo imágenes; no se persiste) */
+  previewUrl?: string;
+  /** conteo exacto o200k del texto (referencia para la lista de archivos) */
+  exactTokens?: number;
+  /** el archivo parece código (pista para el estimador y el optimizador) */
+  code?: boolean;
+  /** aviso de extracción no bloqueante */
+  warning?: string;
+}
+
+/** Máximo de archivos por análisis */
+export const MAX_FILES = 10;
 
 /** Estadísticas del texto analizado */
 export interface FileStats {

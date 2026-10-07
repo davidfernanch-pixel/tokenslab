@@ -1,0 +1,7 @@
+Notas de la reunión de producto.
+
+- Multiarchivo soportado
+- Tokens de imagen por fórmula
+- Comparación de análisis
+
+Fin.
