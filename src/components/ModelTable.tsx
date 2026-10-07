@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { PROVIDERS, type ModelConfig } from "@/lib/models.config";
+import { PROVIDERS, isNewRelease, type ModelConfig } from "@/lib/models.config";
 import { calcCost, fitsContext, usageTone } from "@/lib/cost";
 import {
   formatCost,
@@ -240,7 +240,14 @@ export function ModelTable({
                         aria-hidden
                       />
                       <div className="min-w-0">
-                        <p className="font-medium">{row.model.name}</p>
+                        <p className="flex items-center gap-1.5 font-medium">
+                          <span className="truncate">{row.model.name}</span>
+                          {isNewRelease(row.model) && (
+                            <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-500/10 px-1.5 py-px font-mono text-[9px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                              nuevo
+                            </span>
+                          )}
+                        </p>
                         <p className="font-mono text-[10px] text-muted-foreground">
                           {row.model.id}
                         </p>

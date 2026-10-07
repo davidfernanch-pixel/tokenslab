@@ -27,6 +27,7 @@ import {
   MODELS,
   PROVIDERS,
   PROVIDER_ORDER,
+  isNewRelease,
 } from "@/lib/models.config";
 import { PRECISION_META } from "@/lib/types";
 import { formatWindowCompact } from "@/lib/format";
@@ -117,8 +118,13 @@ export function SettingsPanel() {
                         onCheckedChange={() => toggleModel(model.id)}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
-                          {model.name}
+                        <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                          <span className="truncate">{model.name}</span>
+                          {isNewRelease(model) && (
+                            <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-500/10 px-1.5 py-px font-mono text-[9px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                              nuevo
+                            </span>
+                          )}
                         </p>
                         <p className="font-mono text-[10px] text-muted-foreground">
                           ventana {formatWindowCompact(model.contextWindow)}

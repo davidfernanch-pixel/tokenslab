@@ -380,3 +380,35 @@ Precios siguen TODO (null) por decisión del usuario — la UI lo comunica siemp
 - Riesgos conocidos: (1) restaurar una entrada multiarchivo del historial solo recupera el TEXTO concatenado (las imágenes no se guardan en localStorage por tamaño — limitación documentada); (2) el conteo exacto multiarchivo suma por archivo (fronteras de token entre archivos no compartidas — decisión honesta: cada archivo es un documento); (3) fórmulas de imagen dependen del redimensionado real del proveedor (siempre 🟡 estimado); (4) verificación visual con VLM no disponible en este entorno (token 401) — la QA visual se hizo por DOM/capturas.
 - Prioridades siguientes (roadmap del usuario): 1) BYOK con /api/count (Anthropic count_tokens, Gemini countTokens) → badges 🔵 Oficial; 2) tokenizadores HF locales vía transformers.js (Llama/Mistral/DeepSeek/Qwen exactos); 3) i18n ES/EN real (el toggle ya existe); 4) rellenar precios en models.config.ts desde páginas oficiales (bloqueante para costes).
 - Recomendación: mantener el protocolo de agentes paralelos con worklog + verificación matemática en QA (ha detectado 2 bugs reales esta ronda).
+
+---
+Task ID: 14 (actualización de catálogo — octubre 2026)
+Agent: orchestrator (Z.ai Code)
+Task: El usuario señaló que el catálogo tenía modelos antiguos; renovarlo por completo con los modelos vigentes a 07/10/2026, verificado por búsqueda web, sin inventar precios.
+
+Work Log:
+- Búsqueda web (10 consultas) para verificar los modelos vigentes de cada proveedor a octubre 2026 y sus ventanas de contexto: OpenAI (GPT-5.5/5.4/5.2), Anthropic (Opus 5.5, Fable 5.1, Mythos 5.1, Sonnet 5), Google (Gemini 3.1 Pro preview, 3 Pro, 3 Flash), xAI (Grok 4.5, 4.1 Fast; Grok 5 aún en entrenamiento), DeepSeek (V4 Pro, V4.1 Flash; deepseek-chat/reasoner obsoletos), Mistral (Medium 3.5, Large 3), Qwen (3.8 Max, 3.6-Plus), Meta (Llama 4 sigue siendo la última generación).
+- models.config.ts reescrito: 34 modelos (antes 24). Nuevos flagships activos por defecto (15): gpt-5.5, gpt-5.2, claude-opus-5-5, claude-fable-5-1, claude-sonnet-5, claude-haiku-4-5, gemini-3.1-pro, gemini-3-pro, gemini-3-flash, llama-4-maverick, mistral-medium-3-5, deepseek-v4-pro, deepseek-flash, grok-4-5, qwen3.8-max. Retirados: gpt-4-turbo, gpt-3.5-turbo, claude-opus-4-1, claude-sonnet-4-5, qwen2.5-72b, deepseek-chat, deepseek-reasoner, grok-3, mistral-large-2 (sustituidos). Los que siguen en API se conservan marcados "(legacy)" y desactivados.
+- Precios rellenados SOLO donde hay fuente corroborada (comentario "Fuente:" en cada uno): gpt-5.5 $5/$30 (anuncio oficial OpenAI abr-2026), gpt-5.2 $1.75/$14 (página API OpenAI), claude-opus-5-5 $4/$20 (anuncio oficial Anthropic sep-2026), grok-4-5 $2/$6 (notas de versión xAI), qwen3.8-max $2/$6 (lanzamiento Alibaba), mistral-medium-3-5 $1.5/$7.5 y mistral-large-3 $0.5/$1.5 (rastreadores de pricing oct-2026, marcados para verificar). El resto sigue null — sin inventar.
+- Nuevo campo releaseYear + helpers CATALOG_YEAR/isNewRelease; insignia verde "nuevo" en ResultCard, ModelTable y SettingsPanel para modelos de 2026.
+- store.ts: persist con version: 2 + migrate — al venir de la v0 (catálogo antiguo) se restauran los nuevos defaults (los ids viejos ya no existen); en v2+ se filtran ids desconocidos. Preferencias (outputTokens, moneda) se conservan.
+- sample.ts actualizado con ids modernos; Faq.tsx: respuesta de precios/actualización reescrita (catálogo oct-2026, precios solo corroborados).
+- QA con agent-browser: página carga sin errores (portal de Next = solo devtools, no overlay); análisis de ejemplo → 15 tarjetas con los nuevos modelos y badges "nuevo" (10); conteos coherentes (OpenAI 341 exacto, Anthropic 385, Gemini 358, etc.); tabla: GPT-5.5 → 1.050.000 ventana, $5/$30, coste 0,032 $ (341×5/M + 1024×30/M ✓); Opus 5.5 0,022 $ ✓; Grok 4.5 0,00686 $ ✓; Mistral 0,00824 $ ✓; Qwen3.8 0,00691 $ ✓.
+- Migración probada inyectando localStorage v0 con ids antiguos → recarga → version 2, activeModels = nuevos defaults, outputTokens 2048 y EUR conservados.
+- Calculadora mensual: con EUR (rate TODO) muestra "—" por diseño; con USD → GPT-5.5 = 189,435 $ (1,023M×$5 + 6,144M×$30 ✓).
+- VLM sobre capturas dark/light: insignia "nuevo" visible, sin desalineaciones, contraste correcto. lint 0 problemas, tsc 0 errores en src/. Capturas: qa5-new-catalog-dark.png, qa5-new-catalog-light.png, qa5-monthly-gpt55.png.
+
+Stage Summary — ACTUALIZACIÓN DE CATÁLOGO OCT-2026
+
+■ ESTADO ACTUAL DEL PROYECTO
+TokenLens mantiene las fases 1-4 completas (multiarchivo, imágenes, comparador, historial, optimizador, chunker, mensual) y ahora el catálogo refleja la generación de modelos vigente a 07/10/2026: 34 modelos, 15 activos por defecto, todos los flagships actuales presentes. El coste por tokens funciona de verdad para 7 modelos con precio verificado.
+
+■ OBJETIVOS, MODIFICACIONES Y VERIFICACIÓN
+- Objetivo: responder a la petición del usuario (modelos modernos) sin violar la regla de no inventar precios.
+- Modificaciones: models.config.ts (catálogo completo + releaseYear + precios con fuente), store.ts (migración v2), SettingsPanel/ModelTable/ResultCard (badge "nuevo"), sample.ts, Faq.tsx.
+- Verificación: QA agent-browser end-to-end con matemática de costes verificada al céntimo, migración localStorage probada, VLM visual OK, lint/tsc limpios.
+
+■ PROBLEMAS SIN RESOLVER, RIESGOS Y PRIORIDADES DE LA PRÓXIMA FASE
+- Precios de 27 modelos siguen null (sin fuente oficial corroborada en las búsquedas): gpt-5.5-pro, gpt-5.4, gpt-5.2-codex, todos los Anthropic menos Opus 5.5, todos los Gemini, DeepSeek, Llama, Grok 4.1 Fast, Qwen3.6-Plus, Codestral. Riesgo: ventanas y precios de terceros pueden variar — re-verificar contra páginas oficiales antes de producción.
+- EUR sigue sin tipo de cambio (CURRENCIES.EUR.rate = null).
+- Prioridades siguientes del roadmap: 1) BYOK /api/count (Anthropic count_tokens, Gemini countTokens) → badges 🔵 Oficial; 2) tokenizadores HF locales (transformers.js) para Claude/Llama/DeepSeek/Qwen; 3) i18n ES/EN real; 4) fórmula de imagen para modelos 2026 (las actuales siguen las fórmulas documentadas de cada proveedor).

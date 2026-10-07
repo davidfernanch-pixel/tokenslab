@@ -34,7 +34,7 @@ const FAQS: FaqEntry[] = [
     value: "precios",
     question: "¿Cada cuánto se actualizan precios y ventanas?",
     answer:
-      "Viven en models.config.ts y pueden cambiar en cualquier momento: verifica siempre con la documentación oficial de cada proveedor antes de tomar decisiones de coste. Los precios están pendientes de rellenar (TODO) y se muestran como «—».",
+      "El catálogo se actualizó en octubre de 2026 (GPT-5.5, Claude 5.x, Gemini 3.x, Grok 4.5…). Los precios solo se rellenan con datos corroborados por anuncios oficiales — el resto se muestra como «—» hasta verificarlos. Verifica siempre con la documentación oficial de cada proveedor antes de tomar decisiones de coste.",
   },
   {
     value: "limites",

@@ -555,11 +555,34 @@ export const useTokenLens = create<TokenLensState>()(
     },
     {
       name: "tokenlens-settings",
+      version: 2,
       partialize: (state) => ({
         activeModels: state.activeModels,
         outputTokens: state.outputTokens,
         currency: state.currency,
       }),
+      /**
+       * Migración: el catálogo se renovó por completo en oct-2026 (GPT-5.5,
+       * Claude 5.x, Gemini 3.x, Grok 4.5…). Los ids del catálogo anterior se
+       * descartan y se restauran los activos por defecto (los nuevos
+       * flagships). Para versiones posteriores se filtran ids desconocidos
+       * por seguridad y, si no queda ninguno, también se restauran.
+       */
+      migrate: (persisted, version) => {
+        const p = (persisted ?? {}) as {
+          activeModels?: string[];
+          outputTokens?: number;
+          currency?: CurrencyCode;
+        };
+        if (version < 2) {
+          p.activeModels = DEFAULT_ACTIVE_MODELS;
+          return p;
+        }
+        const known = new Set(MODELS.map((m) => m.id));
+        const kept = (p.activeModels ?? []).filter((id) => known.has(id));
+        p.activeModels = kept.length > 0 ? kept : DEFAULT_ACTIVE_MODELS;
+        return p;
+      },
     },
   ),
 );

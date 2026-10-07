@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAnimatedNumber } from "@/hooks/useAnimatedNumber";
-import { getModel, PROVIDERS } from "@/lib/models.config";
+import { getModel, isNewRelease, PROVIDERS } from "@/lib/models.config";
 import { calcCost, fitsContext, usageTone } from "@/lib/cost";
 import {
   formatCompact,
@@ -113,8 +113,13 @@ export function ResultCard({
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 {PROVIDERS[model.provider].label}
               </p>
-              <h3 className="truncate text-sm font-semibold leading-tight">
-                {model.name}
+              <h3 className="flex items-center gap-1.5 truncate text-sm font-semibold leading-tight">
+                <span className="truncate">{model.name}</span>
+                {isNewRelease(model) && (
+                  <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-500/10 px-1.5 py-px font-mono text-[9px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                    nuevo
+                  </span>
+                )}
               </h3>
             </div>
           </div>

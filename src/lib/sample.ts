@@ -32,8 +32,8 @@ def estimate_cost(tokens: int, price_per_m: float) -> float:
 
 \`\`\`json
 {
-  "modelos": ["gpt-5", "claude-sonnet-4-5", "gemini-2.5-pro"],
-  "ventanas": {"gpt-5": 400000, "claude-sonnet-4-5": 200000},
+  "modelos": ["gpt-5.5", "claude-opus-5-5", "gemini-3-pro", "grok-4-5"],
+  "ventanas": {"gpt-5.5": 1050000, "claude-opus-5-5": 1000000},
   "precios": "TODO: rellenar desde las páginas oficiales"
 }
 \`\`\`
