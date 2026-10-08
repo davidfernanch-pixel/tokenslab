@@ -17,7 +17,7 @@ export const CONTENT_ES: Record<string, string> = {
     "Arrastra un archivo (PDF, DOCX, XLSX, TXT, MD, código…) o pega texto directamente. Nada viaja a ningún servidor.",
   "how.step2.title": "Tokenizamos en local",
   "how.step2.desc":
-    "Contamos los tokens con el tokenizador oficial cuando existe versión para navegador (OpenAI: o200k_base y cl100k_base; Muse, Mistral, DeepSeek y Qwen: BPE oficial de Hugging Face, opt-in en Ajustes) y con estimación por ratio para el resto. Web Workers evitan congelar la interfaz.",
+    "Contamos los tokens con el tokenizador oficial cuando existe versión para navegador (OpenAI: o200k_base y cl100k_base; Muse, Mistral, DeepSeek, Qwen y Zhipu (GLM): BPE oficial de Hugging Face, opt-in en Ajustes) y con estimación por ratio para el resto. Web Workers evitan congelar la interfaz.",
   "how.step3.title": "Compara y decide",
   "how.step3.desc":
     "Ventana de contexto usada, coste estimado por petición y qué modelos admiten tu texto, en tarjetas, gráfico y tabla.",
@@ -37,10 +37,10 @@ export const CONTENT_ES: Record<string, string> = {
     "BYOK (Bring Your Own Key): activas el modo en Ajustes, pegas tu API key de Anthropic o Google y, tras cada análisis, TokenLens consulta el endpoint público de conteo de tokens (count_tokens / countTokens) y sustituye la estimación 🟡 por el número oficial 🔵. Las keys viven solo en tu navegador (localStorage) y viajan únicamente al proveedor a través de un proxy sin estado que no las guarda. No funciona con imágenes (el conteo oficial solo cubre texto) y si una consulta falla, la tarjeta conserva su estimación.",
   "faq.q3": "¿Qué significa la insignia de cada resultado?",
   "faq.a3":
-    "Verde (Exacto): se ha ejecutado el tokenizador real en tu navegador (OpenAI, y Muse Glimmer/Mistral/DeepSeek/Qwen si activas los tokenizadores HF en Ajustes). Azul (Oficial): conteo devuelto por la API del proveedor con tu key (Anthropic y Google en modo BYOK). Ámbar (Estimado): aproximación por ratio de caracteres ajustada por idioma y tipo de contenido (resto de modelos).",
+    "Verde (Exacto): se ha ejecutado el tokenizador real en tu navegador (OpenAI, y Muse Glimmer/Mistral/DeepSeek/Qwen/GLM si activas los tokenizadores HF en Ajustes). Azul (Oficial): conteo devuelto por la API del proveedor con tu key (Anthropic y Google en modo BYOK). Ámbar (Estimado): aproximación por ratio de caracteres ajustada por idioma y tipo de contenido (resto de modelos).",
   "faq.q7": "¿Qué son los tokenizadores locales exactos (HF)?",
   "faq.a7":
-    "Los modelos abiertos (Muse Glimmer 30B, Mistral Medium/Large 3, Devstral 2 y Ministral 3, DeepSeek V4/V3.2/OCR, Qwen 3.5/3.6/3.8 y Qwen3-Coder-Next) publican su tokenizador oficial en Hugging Face. Al activar el modo en Ajustes, TokenLens descarga ese tokenizer.json (6–28 MB por familia, una sola vez: queda cacheado en el navegador) y ejecuta el mismo BPE byte-level que el modelo, con los conteos verificados contra la implementación de referencia. El texto nunca se envía a ningún servidor: solo se descarga el archivo del tokenizador desde la CDN de Hugging Face. Si la descarga falla o estás sin conexión, esos modelos vuelven a la estimación 🟡.",
+    "Los modelos abiertos (Muse Glimmer 30B, Mistral Medium/Large 3, Devstral 2 y Ministral 3, DeepSeek V4/V3.2/OCR, Qwen 3.5/3.6/3.8, Qwen3-Coder-Next y GLM 5.0–5.3 de Zhipu) publican su tokenizador oficial en Hugging Face. Al activar el modo en Ajustes, TokenLens descarga ese tokenizer.json (6–28 MB por familia, una sola vez: queda cacheado en el navegador) y ejecuta el mismo BPE byte-level que el modelo, con los conteos verificados contra la implementación de referencia. El texto nunca se envía a ningún servidor: solo se descarga el archivo del tokenizador desde la CDN de Hugging Face. Si la descarga falla o estás sin conexión, esos modelos vuelven a la estimación 🟡.",
   "faq.q8": "¿Por qué no veo Muse Image, Muse Video, Muse Voice Transcribe o Grok Imagine?",
   "faq.a8":
     "Porque su precio no se basa en tokens de texto: Muse Image se factura por imagen generada ($0.01 según dev.meta.ai), Muse Video y Grok Imagine por vídeo, y Muse Voice Transcribe por audio transcrito. Una calculadora de tokens no puede compararlos en igualdad de condiciones, así que el catálogo solo incluye modelos con facturación por token de entrada/salida. Los modelos de razonamiento, código, OCR o moderación que sí usan tokens están todos.",
@@ -49,7 +49,7 @@ export const CONTENT_ES: Record<string, string> = {
     "Cada proveedor usa su propio tokenizador y no todos son públicos. La estimación divide los caracteres entre un ratio típico del modelo (ajustado por idioma, código o JSON) y lo combina con el recuento de palabras. Suele desviarse menos del 10 %, pero trátalo como orientativo.",
   "faq.q5": "¿Cada cuánto se actualizan precios y ventanas?",
   "faq.a5":
-    "El catálogo se amplió en octubre de 2026 con la lista completa de modelos vigentes: 112 modelos de 8 proveedores (GPT-6/5.6/5.5, Claude 5.5/4.x, Gemini 3.8–3.1, Muse, Mistral, DeepSeek V4, Grok 4.7 y Qwen 3.5–3.8). Los precios solo se rellenan con datos corroborados por anuncios y páginas oficiales — el resto se muestra como «—» hasta verificarlos. Verifica siempre con la documentación oficial de cada proveedor antes de tomar decisiones de coste.",
+    "El catálogo se amplió en octubre de 2026 con la lista completa de modelos vigentes: 117 modelos de 9 proveedores (GPT-6/5.6/5.5, Claude 5.5/4.x, Gemini 3.8–3.1, Muse, Mistral, DeepSeek V4, Grok 4.7, Qwen 3.5–3.8 y GLM 5.0–5.3 de Zhipu). Los precios solo se rellenan con datos corroborados por anuncios y páginas oficiales — el resto se muestra como «—» hasta verificarlos. Verifica siempre con la documentación oficial de cada proveedor antes de tomar decisiones de coste.",
   "faq.q6": "¿Qué límites tiene la herramienta?",
   "faq.a6":
     "Archivos de hasta 20 MB, con procesamiento por trozos para no congelar el navegador. PDFs escaneados sin capa de texto generan un aviso, y los formatos binarios no soportados muestran un error claro con la lista de formatos admitidos.",
@@ -91,7 +91,7 @@ export const CONTENT_EN: Record<string, string> = {
     "Drag in a file (PDF, DOCX, XLSX, TXT, MD, code…) or paste text directly. Nothing ever travels to a server.",
   "how.step2.title": "We tokenize locally",
   "how.step2.desc":
-    "We count tokens with the official tokenizer whenever a browser build exists (OpenAI: o200k_base and cl100k_base; Muse, Mistral, DeepSeek and Qwen: official Hugging Face BPE, opt-in in Settings) and with a ratio-based estimate for the rest. Web Workers keep the interface from freezing.",
+    "We count tokens with the official tokenizer whenever a browser build exists (OpenAI: o200k_base and cl100k_base; Muse, Mistral, DeepSeek, Qwen and Zhipu (GLM): official Hugging Face BPE, opt-in in Settings) and with a ratio-based estimate for the rest. Web Workers keep the interface from freezing.",
   "how.step3.title": "Compare and decide",
   "how.step3.desc":
     "Context window usage, estimated cost per request and which models fit your text — in cards, chart and table.",
@@ -111,10 +111,10 @@ export const CONTENT_EN: Record<string, string> = {
     "BYOK (Bring Your Own Key): you enable the mode in Settings, paste your Anthropic or Google API key and, after every analysis, TokenLens queries the public token-counting endpoint (count_tokens / countTokens) and swaps the 🟡 estimate for the official number 🔵. Keys live only in your browser (localStorage) and travel exclusively to the provider through a stateless proxy that never stores them. It does not work with images (the official count covers text only), and if a query fails the card keeps its estimate.",
   "faq.q3": "What does the badge on each result mean?",
   "faq.a3":
-    "Green (Exact): the model's real tokenizer ran in your browser (OpenAI, plus Muse Glimmer/Mistral/DeepSeek/Qwen if you enable the HF tokenizers in Settings). Blue (Official): count returned by the provider API with your key (Anthropic and Google in BYOK mode). Amber (Estimated): character-ratio approximation adjusted for language and content type (all other models).",
+    "Green (Exact): the model's real tokenizer ran in your browser (OpenAI, plus Muse Glimmer/Mistral/DeepSeek/Qwen/GLM if you enable the HF tokenizers in Settings). Blue (Official): count returned by the provider API with your key (Anthropic and Google in BYOK mode). Amber (Estimated): character-ratio approximation adjusted for language and content type (all other models).",
   "faq.q7": "What are the exact local tokenizers (HF)?",
   "faq.a7":
-    "Open-weight models (Muse Glimmer 30B, Mistral Medium/Large 3, Devstral 2 and Ministral 3, DeepSeek V4/V3.2/OCR, Qwen 3.5/3.6/3.8 and Qwen3-Coder-Next) publish their official tokenizer on Hugging Face. When you enable the mode in Settings, TokenLens downloads that tokenizer.json (6–28 MB per family, once: cached by the browser) and runs the very same byte-level BPE as the model — with counts verified against the reference implementation. Your text is never sent anywhere: only the tokenizer file is fetched from the Hugging Face CDN. If the download fails or you are offline, those models fall back to the 🟡 estimate.",
+    "Open-weight models (Muse Glimmer 30B, Mistral Medium/Large 3, Devstral 2 and Ministral 3, DeepSeek V4/V3.2/OCR, Qwen 3.5/3.6/3.8, Qwen3-Coder-Next and Zhipu's GLM 5.0–5.3) publish their official tokenizer on Hugging Face. When you enable the mode in Settings, TokenLens downloads that tokenizer.json (6–28 MB per family, once: cached by the browser) and runs the very same byte-level BPE as the model — with counts verified against the reference implementation. Your text is never sent anywhere: only the tokenizer file is fetched from the Hugging Face CDN. If the download fails or you are offline, those models fall back to the 🟡 estimate.",
   "faq.q8": "Why don't I see Muse Image, Muse Video, Muse Voice Transcribe or Grok Imagine?",
   "faq.a8":
     "Because their pricing is not based on text tokens: Muse Image bills per generated image ($0.01 per dev.meta.ai), Muse Video and Grok Imagine per video, and Muse Voice Transcribe per transcribed audio. A token calculator cannot compare them on equal footing, so the catalog only includes models billed per input/output token. Reasoning, coding, OCR and moderation models that do use tokens are all there.",
@@ -123,7 +123,7 @@ export const CONTENT_EN: Record<string, string> = {
     "Every provider uses its own tokenizer and not all of them are public. The estimate divides characters by a typical ratio for the model (adjusted for language, code or JSON) and combines it with the word count. It usually deviates by less than 10 %, but treat it as a guideline.",
   "faq.q5": "How often are prices and context windows updated?",
   "faq.a5":
-    "The catalog was expanded in October 2026 with the full list of current models: 112 models from 8 providers (GPT-6/5.6/5.5, Claude 5.5/4.x, Gemini 3.8–3.1, Muse, Mistral, DeepSeek V4, Grok 4.7 and Qwen 3.5–3.8). Prices are only filled in with data corroborated by official announcements and pricing pages — everything else shows as “—” until verified. Always double-check each provider's official documentation before making cost decisions.",
+    "The catalog was expanded in October 2026 with the full list of current models: 117 models from 9 providers (GPT-6/5.6/5.5, Claude 5.5/4.x, Gemini 3.8–3.1, Muse, Mistral, DeepSeek V4, Grok 4.7, Qwen 3.5–3.8 and Zhipu's GLM 5.0–5.3). Prices are only filled in with data corroborated by official announcements and pricing pages — everything else shows as “—” until verified. Always double-check each provider's official documentation before making cost decisions.",
   "faq.q6": "What limits does the tool have?",
   "faq.a6":
     "Files up to 20 MB, processed in chunks so the browser never freezes. Scanned PDFs without a text layer raise a warning, and unsupported binary formats show a clear error listing the accepted formats.",

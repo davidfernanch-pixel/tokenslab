@@ -735,7 +735,7 @@ export const useTokenLens = create<TokenLensState>()(
     },
     {
       name: "tokenlens-settings",
-      version: 3,
+      version: 4,
       partialize: (state) => ({
         activeModels: state.activeModels,
         outputTokens: state.outputTokens,
@@ -745,11 +745,12 @@ export const useTokenLens = create<TokenLensState>()(
       /**
        * Migración: v3 = catálogo de oct-2026 ampliado con la lista completa
        * del usuario (112 modelos: GPT-6, Muse, Ministral 3, Qwen 3.5–3.8…).
-       * Muchos ids cambiaron de nombre (p. ej. gpt-5.5 → gpt-5.5-thinking,
-       * deepseek-flash → deepseek-v4-flash), así que las selecciones de
-       * catálogos anteriores se descartan y se restauran los flagships por
-       * defecto. Para versiones posteriores se filtran ids desconocidos por
-       * seguridad y, si no queda ninguno, también se restauran.
+       * v4 = se incorpora el proveedor Zhipu (GLM-5.0 … GLM-5.3-Flash): los
+       * modelos GLM nuevos activados por defecto se AÑADEN a la selección
+       * existente en vez de descartarla. Para catálogos anteriores a v3
+       * muchos ids cambiaron de nombre (p. ej. gpt-5.5 → gpt-5.5-thinking),
+       * así que se restauran los flagships por defecto. Siempre se filtran
+       * ids desconocidos y, si no queda ninguno, también se restauran.
        */
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as {
@@ -763,6 +764,12 @@ export const useTokenLens = create<TokenLensState>()(
         }
         const known = new Set(MODELS.map((m) => m.id));
         const kept = (p.activeModels ?? []).filter((id) => known.has(id));
+        // v3 → v4: incorpora Zhipu (GLM) sin tocar el resto de la selección.
+        if (version === 3) {
+          for (const id of DEFAULT_ACTIVE_MODELS) {
+            if (id.startsWith("glm-") && !kept.includes(id)) kept.push(id);
+          }
+        }
         p.activeModels = kept.length > 0 ? kept : DEFAULT_ACTIVE_MODELS;
         return p;
       },

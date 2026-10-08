@@ -29,6 +29,24 @@ import { cn } from "@/lib/utils";
 /** cómo tratar los archivos elegidos respecto al análisis actual */
 type PickerMode = "replace" | "add";
 
+/**
+ * ¿Nació el evento dentro de un portal de Radix (diálogo, popover…)?
+ *
+ * El contenido de esos portales se monta en document.body, pero React
+ * burbujea los eventos sintéticos por el ÁRBOL DE COMPONENTES: sin este
+ * filtro, cualquier clic dentro de un diálogo hijo (la «x» de cerrar,
+ * «Cancelar», el propio textarea de «Pegar texto»…) acabaría disparando
+ * el onClick de la zona y abriría el selector de archivos.
+ */
+function isFromPortal(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest(
+      "[role='dialog'], [data-radix-popper-content-wrapper]",
+    ) != null
+  );
+}
+
 export function Dropzone() {
   const t = useT();
   const sampleText = useSampleText();
@@ -69,7 +87,10 @@ export function Dropzone() {
         role="button"
         tabIndex={0}
         aria-label={t("drop.zone.aria")}
-        onClick={() => openPicker(zonePickerMode)}
+        onClick={(e) => {
+          if (isFromPortal(e.target)) return;
+          openPicker(zonePickerMode);
+        }}
         onKeyDown={(e) => {
           // Solo cuando el foco está en la propia zona (no en botones internos).
           if (e.target !== e.currentTarget) return;
@@ -80,19 +101,21 @@ export function Dropzone() {
         }}
         onDragOver={(e) => {
           e.preventDefault();
-          setIsDragging(true);
+          if (!isFromPortal(e.target)) setIsDragging(true);
         }}
         onDragEnter={(e) => {
           e.preventDefault();
-          setIsDragging(true);
+          if (!isFromPortal(e.target)) setIsDragging(true);
         }}
         onDragLeave={(e) => {
+          if (isFromPortal(e.target)) return;
           if (!e.currentTarget.contains(e.relatedTarget as Node)) {
             setIsDragging(false);
           }
         }}
         onDrop={(e) => {
           e.preventDefault();
+          if (isFromPortal(e.target)) return;
           setIsDragging(false);
           const dropped = Array.from(e.dataTransfer.files);
           // Si ya hay un análisis en curso, lo soltado se añade al lote.
@@ -196,6 +219,9 @@ export function Dropzone() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {/* Pegar texto sigue disponible con un lote ya analizado
+                    (sustituye el análisis actual), también con la tecla «P». */}
+                <PasteDialog size="sm" />
                 {isMulti ? (
                   <Button
                     variant="outline"
@@ -286,7 +312,6 @@ export function Dropzone() {
                     e.stopPropagation();
                     void analyzeText(sampleText, t("drop.sample.file"));
                   }}
-                  onKeyDown={(e) => e.stopPropagation()}
                 >
                   <Sparkles className="h-4 w-4" />
                   {t("drop.sample")}

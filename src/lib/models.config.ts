@@ -3,7 +3,8 @@
  *
  * ─────────────────────────────────────────────────────────────────────────────
  * 📅 Catálogo actualizado a octubre de 2026 a partir de la lista de modelos
- * facilitada por el usuario (8 proveedores, 112 modelos) y verificado por
+ * facilitada por el usuario (112 modelos) + la familia GLM de Zhipu añadida
+ * a petición del usuario (9 proveedores, 117 modelos) y verificado por
  * búsqueda web contra páginas oficiales de pricing cuando ha sido posible:
  *   · OpenAI: developers.openai.com/pricing + anuncios oficiales openai.com
  *   · Google: ai.google.dev/gemini-api/docs/pricing (tabla oficial leída íntegra)
@@ -12,6 +13,9 @@
  *   · Meta: dev.meta.ai (Model API: Models and pricing, Long context)
  *   · Anthropic: anuncios oficiales anthropic.com + platform.claude.com
  *   · Mistral / Qwen: docs y Model Studio + agregadores corroborados
+ *   · Zhipu (Z.ai): docs.z.ai/guides/overview/pricing (tabla oficial) +
+ *     z.ai/blog (GLM-5.1, GLM-5.2, GLM-5.3) + paper arXiv de GLM-5
+ *     (ventana de contexto 202.752)
  *
  * ⚠️ PRECIOS: solo se rellenan cuando existen en anuncios oficiales o páginas
  * de pricing corroboradas por varias fuentes (comentario `Fuente:` en cada
@@ -39,7 +43,8 @@ export type Provider =
   | "mistral"
   | "deepseek"
   | "xai"
-  | "qwen";
+  | "qwen"
+  | "zhipu";
 
 export type TokenizerKind =
   | "tiktoken-o200k"
@@ -98,6 +103,10 @@ export interface ModelConfig {
  *   vocab 129.280). V3.2 y V3.2-Speciale comparten el suyo (7,5 MB).
  * - Mistral Medium 3.5 / Large 3: repos oficiales abiertos (tekken, 131k).
  * - Muse Glimmer 30B: repo oficial meta-models (Apache 2.0, ungated).
+ * - GLM 5 (Zhipu / Z.ai): GLM-5.0, 5.1, 5.2, 5.3 y 5.3-Flash comparten el
+ *   MISMO tokenizer.json (mismo ETag verificado vía HF API, 20,2 MB): una
+ *   sola descarga sirve para toda la familia. Repos oficiales zai-org,
+ *   ungated. Se usa el de GLM-5.3 como canónico.
  * - Mistral Large 4: pesos abiertos prometidos para finales de oct-2026
  *   (aún sin repo público) → estimado por ahora.
  */
@@ -126,6 +135,7 @@ export const PROVIDERS: Record<Provider, ProviderInfo> = {
   deepseek: { label: "DeepSeek", color: "#4d6bfe" },
   xai: { label: "xAI", color: "#9ca3af" },
   qwen: { label: "Qwen", color: "#615ced" },
+  zhipu: { label: "Zhipu", color: "#06b6d4" },
 };
 
 export const HF_TOKENIZERS: Record<string, HfTokenizerInfo> = {
@@ -195,6 +205,12 @@ export const HF_TOKENIZERS: Record<string, HfTokenizerInfo> = {
     color: PROVIDERS.meta.color,
     sizeMB: 27,
   },
+  "zai-org/GLM-5.3": {
+    repo: "zai-org/GLM-5.3",
+    label: "GLM 5 (familia Zhipu)",
+    color: PROVIDERS.zhipu.color,
+    sizeMB: 20,
+  },
 };
 
 export const PROVIDER_ORDER: Provider[] = [
@@ -206,6 +222,7 @@ export const PROVIDER_ORDER: Provider[] = [
   "deepseek",
   "xai",
   "qwen",
+  "zhipu",
 ];
 
 /**
@@ -1915,6 +1932,102 @@ export const MODELS: ModelConfig[] = [
     estimateRatio: 3.6,
     // tokenizer propio (6,7 MB, distinto de la serie 3.5)
     hfRepo: "Qwen/Qwen3-Coder-Next",
+    releaseYear: 2026,
+    enabledByDefault: false,
+  },
+
+  // ── Zhipu / Z.ai (GLM — tokenizador HF común a toda la familia) ────────────
+  {
+    id: "glm-5.3",
+    name: "GLM-5.3",
+    provider: "zhipu",
+    tokenizer: "hf",
+    precision: "estimated",
+    contextWindow: 1_048_576,
+    // Fuente: docs.z.ai/guides/overview/pricing ("GLM-5.3 $1.4 · $4.4",
+    // cache $0.26) + venturebeat (18-ago-2026: "unchanged from GLM-5.2") +
+    // felloai, requesty y puter. Lanzado 14-ago-2026 (z.ai/blog). Misma base
+    // que GLM-5.2 (github zai-org/GLM-5) → contexto 1M. Texto+imagen.
+    priceInPerM: 1.4,
+    priceOutPerM: 4.4,
+    estimateRatio: 3.6,
+    vision: true,
+    hfRepo: "zai-org/GLM-5.3",
+    releaseYear: 2026,
+    enabledByDefault: true,
+  },
+  {
+    id: "glm-5.3-flash",
+    name: "GLM-5.3-Flash",
+    provider: "zhipu",
+    tokenizer: "hf",
+    precision: "estimated",
+    contextWindow: 1_048_576,
+    // Fuente: docs.z.ai/guides/overview/pricing ("GLM-5.3-Flash $0.15 · $0.50",
+    // cache $0.03) + cellcog ("list price $0.15/M in, $0.50/M out" tras la
+    // promo gratuita inicial) + requesty. Contexto 1M (OpenRouter). MoE
+    // 320B/18B. Primer GLM multimodal nativo: texto, imagen y vídeo
+    // (gate.ai, codersera, zenmux, cometapi).
+    priceInPerM: 0.15,
+    priceOutPerM: 0.5,
+    estimateRatio: 3.6,
+    vision: true,
+    hfRepo: "zai-org/GLM-5.3",
+    releaseYear: 2026,
+    enabledByDefault: true,
+  },
+  {
+    id: "glm-5.2",
+    name: "GLM-5.2",
+    provider: "zhipu",
+    tokenizer: "hf",
+    precision: "estimated",
+    contextWindow: 1_048_576,
+    // Fuente: docs.z.ai ("GLM-5.2 $1.4 · $0.26 cache · $4.4") + layer3labs,
+    // flowtivity, felloai y requesty. Lanzado 13-jun-2026; amplía el contexto
+    // de 200K a 1M tokens (z.ai/blog "Built for Long-Horizon Tasks"). Pesos
+    // abiertos MIT (744B MoE). Sin entrada de imagen (codersera).
+    priceInPerM: 1.4,
+    priceOutPerM: 4.4,
+    estimateRatio: 3.6,
+    hfRepo: "zai-org/GLM-5.3",
+    releaseYear: 2026,
+    enabledByDefault: false,
+  },
+  {
+    id: "glm-5.1",
+    name: "GLM-5.1",
+    provider: "zhipu",
+    tokenizer: "hf",
+    precision: "estimated",
+    contextWindow: 204_800,
+    // Fuente: docs.z.ai ("GLM-5.1 $1.4 · $0.26 cache · $4.4") + therundown
+    // (31-ago-2026: "$1.40 input, $0.26 cached, $4.40 output"). Lanzado
+    // 7-abr-2026 (z.ai/blog "Towards Long-Horizon Tasks"). Contexto ~203K
+    // (OpenRouter: 204.800; pricepertoken: 203K).
+    priceInPerM: 1.4,
+    priceOutPerM: 4.4,
+    estimateRatio: 3.6,
+    hfRepo: "zai-org/GLM-5.3",
+    releaseYear: 2026,
+    enabledByDefault: false,
+  },
+  {
+    id: "glm-5.0",
+    name: "GLM-5.0",
+    provider: "zhipu",
+    tokenizer: "hf",
+    precision: "estimated",
+    contextWindow: 202_752,
+    // Fuente: docs.z.ai ("GLM-5 $1 · $0.2 cache · $3.2") + developer.puter.com
+    // (tabla sep-2026: "GLM-5, $1.00, $3.20"). El paper arXiv "GLM-5: from
+    // Vibe Coding to Agentic Engineering" (17-feb-2026) fija el contexto en
+    // 202.752 tokens; MoE 744B. NOTA: OpenRouter lista $0.60/$1.92, pero es
+    // tarifa del marketplace, no la oficial de Z.ai.
+    priceInPerM: 1,
+    priceOutPerM: 3.2,
+    estimateRatio: 3.6,
+    hfRepo: "zai-org/GLM-5.3",
     releaseYear: 2026,
     enabledByDefault: false,
   },

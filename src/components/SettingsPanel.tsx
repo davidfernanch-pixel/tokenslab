@@ -160,7 +160,7 @@ export function SettingsPanel() {
   const hfEnabled = useTokenLens((s) => s.hfEnabled);
   const setHfEnabled = useTokenLens((s) => s.setHfEnabled);
 
-  // Búsqueda de modelos (112 en catálogo): insensible a mayúsculas y acentos
+  // Búsqueda de modelos (117 en catálogo): insensible a mayúsculas y acentos
   const [query, setQuery] = useState("");
   const normalizedQuery = useMemo(
     () =>

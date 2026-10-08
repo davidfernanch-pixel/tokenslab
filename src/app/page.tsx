@@ -98,15 +98,18 @@ export default function Home() {
         return;
       }
       if (document.querySelector("[data-state='open']")) return;
-      if (key === "p") {
-        document
-          .querySelector<HTMLElement>('[data-shortcut="paste"]')
-          ?.click();
-      } else {
-        document
-          .querySelector<HTMLElement>('[data-shortcut="visualizer"]:not(:disabled)')
-          ?.click();
-      }
+      const btn =
+        key === "p"
+          ? document.querySelector<HTMLElement>('[data-shortcut="paste"]')
+          : document.querySelector<HTMLElement>(
+              '[data-shortcut="visualizer"]:not(:disabled)',
+            );
+      if (!btn) return;
+      // Imprescindible: sin preventDefault la propia tecla («p»/«v») se
+      // insertaría en el campo que reciba el foco al abrirse el diálogo
+      // (p. ej. el textarea de «Pegar texto», que es el primer focusable).
+      e.preventDefault();
+      btn.click();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

@@ -650,3 +650,50 @@ TokenLens integra el catálogo completo facilitado por el usuario (112 modelos, 
 - EUR sigue sin tipo de cambio (TODO en CURRENCIES).
 - Mistral Large 4: vigilar la publicación de pesos en HF y pasar a tokenizer "hf" + verificar precio al GA.
 - Prioridades siguientes: 1) columna de latencia real por modelo (los ms ya se miden); 2) rellenar precios pendientes cuando las fuentes los publiquen; 3) QA del camino de fallo HF offline; 4) tasa EUR.
+
+---
+Task ID: 19
+Agent: orchestrator (Z.ai Code)
+Task: Bugs reportados por el usuario en el diálogo de «Pegar texto» (la tecla «P» escribía una «p» en el textarea; cualquier clic dentro del menú —incluida la «x» de cerrar— abría el selector de archivos) + investigar y añadir glm-5.3, glm-5.2, glm-5.1, glm-5.0 y glm-5.3-flash de Zhipu.
+
+Work Log:
+- DIAGNÓSTICO bug 1 (tecla «p» filtrada): el handler global de atajos (page.tsx) hacía .click() sobre el botón «Pegar texto» SIN e.preventDefault(); al abrirse el diálogo, Radix enfoca el primer focusable (el textarea) y la acción por defecto del keydown insertaba la «p» ahí.
+- DIAGNÓSTICO bug 2 (selector de archivos): PasteDialog se renderiza DENTRO del div de la Dropzone, cuyo onClick llama a openPicker(). El DialogContent vive en un portal de Radix (document.body), pero los eventos sintéticos de React burbujean por el ÁRBOL DE COMPONENTES: cualquier clic dentro del diálogo (textarea, «Cancelar», la «x») alcanzaba el onClick de la zona y abría el selector.
+- FIX page.tsx: e.preventDefault() antes de btn.click() en los atajos «P»/«V» (con comentario explicando por qué es imprescindible).
+- FIX Dropzone.tsx: helper isFromPortal(target) (closest '[role=dialog], [data-radix-popper-content-wrapper]') aplicado a onClick + onDragOver/Enter/Leave/Drop de la zona: los eventos nacidos en portales se ignoran. Eliminado el onKeyDown stopPropagation del botón de ejemplo (mataba los atajos globales cuando tenía el foco tras cerrar el diálogo).
+- FIX PasteDialog.tsx: eliminado el onKeyDown stopPropagation del trigger (Radix devuelve el foco al botón al cerrar y la «P» quedaba muerta). Añadida prop size ("sm" | "default").
+- MEJORA UX descubierta en QA: en estado «done» el botón «Pegar texto» no existía → el atajo «P» moría silenciosamente tras un análisis. Añadido <PasteDialog size="sm" /> a la fila de botones del estado done (junto a «Cambiar archivo»/«Añadir más»).
+- INVESTIGACIÓN GLM (7 búsquedas web + HF API): docs.z.ai/guides/overview/pricing (tabla oficial leída vía snippets), z.ai/blog (GLM-5.1 7-abr, GLM-5.2 13-jun, GLM-5.3 14-ago-2026), paper arXiv de GLM-5 (17-feb-2026, contexto 202.752), venturebeat, felloai, cellcog, therundown, layer3labs, gate.ai, codersera. HF API: los 5 repos zai-org/GLM-5{,.1,.2,.3,-Flash} existen, ungated, y comparten el MISMO tokenizer.json (ETag 961c851c… idéntico en los 5, 20.217.442 bytes ≈ 20 MB).
+- models.config.ts: proveedor "zhipu" (label "Zhipu", color #06b6d4) en Provider/PROVIDERS/PROVIDER_ORDER; entrada HF_TOKENIZERS "zai-org/GLM-5.3" (label "GLM 5 (familia Zhipu)", 20 MB); 5 modelos nuevos al final de MODELS: glm-5.3 ($1.4/$4.4, 1.048.576 ctx, vision, default), glm-5.3-flash ($0.15/$0.50, 1M ctx, vision texto+imagen+vídeo, MoE 320B/18B, default), glm-5.2 ($1.4/$4.4, 1M ctx, MIT, sin visión), glm-5.1 ($1.4/$4.4, 204.800 ctx), glm-5.0 ($1/$3.2, 202.752 ctx; OpenRouter $0.60/$1.92 descartado por ser tarifa marketplace). Todos tokenizer "hf" con hfRepo canónico zai-org/GLM-5.3, releaseYear 2026, estimateRatio 3.6, comentario "Fuente:" en cada uno. Total: 117 modelos, 9 proveedores.
+- store.ts: persist version 3→4; migración v==3 AÑADE los glm- por defecto a la selección existente (no destructiva); v<3 reset como antes; filtro de ids desconocidos intacto.
+- i18n dict-content ES/EN: how.step2, faq.a3, faq.a7 y faq.a5 actualizados (117 modelos / 9 proveedores / GLM 5.0–5.3 de Zhipu). Hero.tsx: contador de proveedores hardcodeado «8» → PROVIDER_ORDER.length. SettingsPanel: comentario 112→117.
+- imageTokens.ts: sin cambios (GLM vision usa la fórmula genérica /750 ya existente).
+
+QA (agent-browser, 0 errores de página, consola limpia):
+- Migración v3→v4 inyectando storage con 2 modelos: tras reload → ["gpt-6-astra","grok-4-7","glm-5.3","glm-5.3-flash"] ✓ (conserva + añade).
+- Atajo «P»: diálogo abre, textarea vacío (sin «p» filtrada) ✓. En estado done también abre (botón nuevo) ✓. Flujo completo: pegar 165 chars + Ctrl+Enter → análisis «texto pegado», GLM-5.3 47 tok, $0,00908 = (47×1.4+2048×4.4)/1M ✓.
+- Selector de archivos: clic en la «x» de cerrar → 0 aperturas; clic en textarea → 0; «Cancelar» → 0 ✓. Clic en la zona → 1 evento real en el input (el +2 del contador era el no-op del flag "click in progress" de la spec, verificado contando eventos) ✓.
+- Tarjetas GLM (ejemplo.md, 387 tok estimados): GLM-5.3 $0,00955 ✓, Flash $0,00108 ✓, GLM-5.0 $0,00694 ✓ (matemáticas exactas); ventanas 1.048.576 / 202.752 con restante correcto; insignia «nuevo» en las 5.
+- Ajustes: badge Zhipu 2/5; buscador «glm» → solo Zhipu (5 modelos, ventanas 1M/204,8 mil); «todos» → 5/5; sección HF lista «GLM 5 (familia Zhipu)» 20 MB ✓.
+- HF ON (switch real con eventos de puntero; ojo: el .click() programático NO togguea el Radix Switch): chip «5 exactos (HF)», las 5 GLM 🟢 Exacto con 362 tokens del tokenizer real de 20 MB ✓.
+- Hero: «117 modelos · 9 proveedores» (antes 8 hardcodeado) ✓. FAQ EN q5: «117 models from 9 providers (… Zhipu's GLM 5.0–5.3)» ✓.
+- Móvil 390×844: sin overflow horizontal, footer exactamente al final del documento (4636=4636) ✓. VLM sobre captura móvil: sin defectos.
+- tsc: 0 errores en src/ (solo los 4 preexistentes de examples/skills); lint 0/0; dev.log limpio.
+- Capturas: qa-shots/qa11-glm-results.png, qa11-mobile-top.png, qa11-glm-exact-hf.png.
+
+Stage Summary — BUGS DE ATAJO CORREGIDOS + PROVEEDOR ZHIPU (GLM-5.x) INTEGRADO
+
+■ ESTADO ACTUAL DEL PROYECTO
+TokenLens tiene 117 modelos de 9 proveedores (añadida Zhipu con GLM-5.0/5.1/5.2/5.3/5.3-Flash, precios oficiales docs.z.ai corroborados) y los bugs de interacción del diálogo de pegado resueltos: la tecla «P» ya no se cuela en el textarea y los clics dentro del diálogo ya no abren el selector de archivos. El atajo «P» ahora funciona también tras un análisis (botón «Pegar texto» permanente en estado done).
+
+■ OBJETIVOS, MODIFICACIONES Y VERIFICACIÓN
+- Objetivo: arreglar los 3 síntomas reportados (p filtrada, menú que pide archivo, x que abre archivo) + añadir los 5 GLM de Zhipu con investigación de precios oficiales.
+- Modificados: page.tsx (preventDefault), Dropzone.tsx (guard de portales + PasteDialog en done), PasteDialog.tsx (prop size, stopPropagation onKeyDown fuera), models.config.ts (zhipu + 5 GLM + HF tokenizer familia), store.ts (v4), dict-content ES/EN, Hero.tsx (contador dinámico), SettingsPanel (comentario).
+- Verificación: migración v3→v4 real en navegador; atajos y clics probados uno a uno con instrumentación (contador de eventos en el input file); matemáticas de coste exactas en 3 tarjetas GLM; conteo EXACTO con el tokenizer real de GLM (362 tok, chip «5 exactos (HF)»); EN/ES; móvil + footer; tsc/lint/dev.log limpios.
+
+■ PROBLEMAS SIN RESOLVER, RIESGOS Y PRIORIDADES DE LA PRÓXIMA FASE
+- Los mismos 59 precios null del catálogo anterior (los 5 GLM nuevos SÍ tienen precio corroborado) + EUR sin tipo de cambio.
+- Riesgo GLM: docs.z.ai muestra «Limited-time Free» para cached-input storage y la promo de GLM-5.3-Flash ($0.075/$0.25 hasta 9-sep-2026 según eesel) ya expiró → vigilar subidas de tarifa; el precio oficial de lista es el que está puesto.
+- GLM-5.1 con contexto 204.800 (OpenRouter) vs 202.752 del paper de GLM-5: cifras distintas entre fuentes, ambas ~203K.
+- QA nota: los switches de Radix no responden a .click() programático (solo eventos de puntero reales) — usar agent-browser click en futuras QA.
+- Prioridades siguientes: 1) columna de latencia real por modelo; 2) precios pendientes (59 null); 3) QA HF offline; 4) tasa EUR; 5) BYOK no cubre Zhipu (sin endpoint público de conteo conocido).

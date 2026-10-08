@@ -1,6 +1,6 @@
 import { BarChart3, Lock, ShieldCheck, Zap } from "lucide-react";
 
-import { MODELS } from "@/lib/models.config";
+import { MODELS, PROVIDER_ORDER } from "@/lib/models.config";
 import { useT } from "@/lib/i18n";
 
 /**
@@ -80,7 +80,7 @@ export function Hero() {
             <span>
               <span className="font-mono tabular-nums">{MODELS.length}</span>{" "}
               {t("hero.chip.models")} ·{" "}
-              <span className="font-mono tabular-nums">8</span>{" "}
+              <span className="font-mono tabular-nums">{PROVIDER_ORDER.length}</span>{" "}
               {t("hero.chip.providers")}
             </span>
           </span>

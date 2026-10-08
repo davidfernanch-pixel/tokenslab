@@ -18,7 +18,7 @@ import { useTokenLens } from "@/lib/store";
 import { formatNumber } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 
-export function PasteDialog() {
+export function PasteDialog({ size = "default" }: { size?: "sm" | "default" }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -37,9 +37,9 @@ export function PasteDialog() {
       <DialogTrigger asChild>
         <Button
           variant="outline"
+          size={size}
           data-shortcut="paste"
           onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
         >
           <ClipboardType className="h-4 w-4" />
           {t("paste.trigger")}
